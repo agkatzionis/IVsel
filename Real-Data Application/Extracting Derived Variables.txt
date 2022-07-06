@@ -1,0 +1,277 @@
+
+##########   ALSPAC - CREATION OF DERIVED VARIABLES   ##########
+
+## We used the files "filtered##.bgen" from the HRC-imputed version of ALSPAC.
+## Access to these files was granted to us through ALSPAC Application B3838.
+
+## Assume all ALSPAC data files have been uploaded to the cluster and can be accessed at
+cd [-----MY WORKING DIRECTORY-----]
+
+
+## The first stage of the analysis was made in Plink, using Bristol University's
+## cluster computer. This file contains the Plink commands.
+
+## We create four derived variables: a polygenic score for BMI, a score for ALSPAC 
+## participation and two scores for participation in optional components of UK Biobank.
+## For each of them, we need a set of SNPs (rsIDs or positions), effect alleles
+## and weights (beta coefficients of association with BMI or participation).
+
+## These files are called "BMI_snps", "FFQ_snps", "MHQ_snps" and Part_snps" respectively
+## and are provided separately. SNPs for BMI were obtained from Pulit et al (2017),
+## SNPs for UKB participation are from Tyrell et al. (2021) and SNPs for ALSPAC
+## participation were chosen based on their p-value of association with overall 
+## offspring participation (threshold: 1e-4) and pruned for independence.
+
+##################################################
+
+##########   BMI POLYGENIC SCORE   ##########
+
+## Load plink.
+module load apps/plink/2.00
+plink
+
+## We use the "extract" command per chromosome and save results in files "extracted##".
+plink --bgen filtered_01.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted01
+plink --bgen filtered_02.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted02
+plink --bgen filtered_03.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted03
+plink --bgen filtered_04.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted04
+plink --bgen filtered_05.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted05
+plink --bgen filtered_06.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted06
+plink --bgen filtered_07.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted07
+plink --bgen filtered_08.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted08
+plink --bgen filtered_09.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted09
+plink --bgen filtered_10.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted10
+plink --bgen filtered_11.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted11
+plink --bgen filtered_12.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted12
+plink --bgen filtered_13.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted13
+plink --bgen filtered_14.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted14
+plink --bgen filtered_15.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted15
+plink --bgen filtered_16.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted16
+plink --bgen filtered_17.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted17
+plink --bgen filtered_18.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted18
+plink --bgen filtered_19.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted19
+plink --bgen filtered_20.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted20
+plink --bgen filtered_21.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted21
+plink --bgen filtered_22.bgen --sample swapped.sample --missing-code 0 --extract BMI_snps.txt --make-bed --out extracted22
+## There is probably a more efficient way of doing this but nevermind.
+
+## Now merge the files. This needs an older version of plink.
+module load apps/plink/1.90
+plink
+
+## Do the merging manually.
+plink --bfile extracted01 --bmerge extracted02.bed extracted02.bim extracted02.fam --recode --out merged2
+plink --bfile merged2 --bmerge extracted03.bed extracted03.bim extracted03.fam --recode --out merged3
+plink --bfile merged3 --bmerge extracted04.bed extracted04.bim extracted04.fam --recode --out merged4
+plink --bfile merged4 --bmerge extracted05.bed extracted05.bim extracted05.fam --recode --out merged5
+plink --bfile merged5 --bmerge extracted06.bed extracted06.bim extracted06.fam --recode --out merged6
+plink --bfile merged6 --bmerge extracted07.bed extracted07.bim extracted07.fam --recode --out merged7
+plink --bfile merged7 --bmerge extracted08.bed extracted08.bim extracted08.fam --recode --out merged8
+plink --bfile merged8 --bmerge extracted09.bed extracted09.bim extracted09.fam --recode --out merged9
+plink --bfile merged9 --bmerge extracted10.bed extracted10.bim extracted10.fam --recode --out merged10
+plink --bfile merged10 --bmerge extracted11.bed extracted11.bim extracted11.fam --recode --out merged11
+plink --bfile merged11 --bmerge extracted12.bed extracted12.bim extracted12.fam --recode --out merged12
+plink --bfile merged12 --bmerge extracted13.bed extracted13.bim extracted13.fam --recode --out merged13
+plink --bfile merged13 --bmerge extracted14.bed extracted14.bim extracted14.fam --recode --out merged14
+plink --bfile merged14 --bmerge extracted15.bed extracted15.bim extracted15.fam --recode --out merged15
+plink --bfile merged15 --bmerge extracted16.bed extracted16.bim extracted16.fam --recode --out merged16
+plink --bfile merged16 --bmerge extracted17.bed extracted17.bim extracted17.fam --recode --out merged17
+plink --bfile merged17 --bmerge extracted18.bed extracted18.bim extracted18.fam --recode --out merged18
+plink --bfile merged18 --bmerge extracted19.bed extracted19.bim extracted19.fam --recode --out merged19
+plink --bfile merged19 --bmerge extracted20.bed extracted20.bim extracted20.fam --recode --out merged20
+plink --bfile merged20 --bmerge extracted21.bed extracted21.bim extracted21.fam --recode --out merged21
+plink --bfile merged21 --bmerge extracted22.bed extracted22.bim extracted22.fam --recode --out merged_bmi_snps
+
+## Convert the .bed file into .ped and .map files.
+plink --bfile merged_bmi_snps --recode
+
+## Then create the score.
+plink --file merged_bmi_snps --score BMI_snps.txt 1 2 3 --out bmi_scores2
+
+## Then manually convert the resulting .profile file into a .txt file.
+## This is the derived file for BMI. Further analysis was done in R.
+
+##################################################
+
+##########   FFQ POLYGENIC SCORE   ##########
+
+## The process is similar as that followed for BMI.
+
+## Load the newer version of Plink.
+module load apps/plink/2.00
+plink
+
+## Do the extraction for SNPs in file "FFQ_snps.txt".
+## Only needed for the following chromosomes: 1, 2, 5, 6, 7, 11, 15, 17, 19, 21.
+plink --bgen filtered_01.bgen --sample swapped.sample --missing-code 0 --extract FFQ_snps.txt --make-bed --out ffq_snps_01
+plink --bgen filtered_02.bgen --sample swapped.sample --missing-code 0 --extract FFQ_snps.txt --make-bed --out ffq_snps_02
+plink --bgen filtered_05.bgen --sample swapped.sample --missing-code 0 --extract FFQ_snps.txt --make-bed --out ffq_snps_05
+plink --bgen filtered_06.bgen --sample swapped.sample --missing-code 0 --extract FFQ_snps.txt --make-bed --out ffq_snps_06
+plink --bgen filtered_07.bgen --sample swapped.sample --missing-code 0 --extract FFQ_snps.txt --make-bed --out ffq_snps_07
+plink --bgen filtered_11.bgen --sample swapped.sample --missing-code 0 --extract FFQ_snps.txt --make-bed --out ffq_snps_11
+plink --bgen filtered_15.bgen --sample swapped.sample --missing-code 0 --extract FFQ_snps.txt --make-bed --out ffq_snps_15
+plink --bgen filtered_17.bgen --sample swapped.sample --missing-code 0 --extract FFQ_snps.txt --make-bed --out ffq_snps_17
+plink --bgen filtered_19.bgen --sample swapped.sample --missing-code 0 --extract FFQ_snps.txt --make-bed --out ffq_snps_19
+plink --bgen filtered_21.bgen --sample swapped.sample --missing-code 0 --extract FFQ_snps.txt --make-bed --out ffq_snps_21
+
+## Revert to the older version of Plink.
+module load apps/plink/1.90
+plink
+
+## Now merge the files together.
+plink --bfile ffq_snps_01 --bmerge ffq_snps_02.bed ffq_snps_02.bim ffq_snps_02.fam --recode --out ffq_merged2
+plink --bfile ffq_merged2 --bmerge ffq_snps_05.bed ffq_snps_05.bim ffq_snps_05.fam --recode --out ffq_merged3
+plink --bfile ffq_merged3 --bmerge ffq_snps_06.bed ffq_snps_06.bim ffq_snps_06.fam --recode --out ffq_merged4
+plink --bfile ffq_merged4 --bmerge ffq_snps_07.bed ffq_snps_07.bim ffq_snps_07.fam --recode --out ffq_merged5
+plink --bfile ffq_merged5 --bmerge ffq_snps_11.bed ffq_snps_11.bim ffq_snps_11.fam --recode --out ffq_merged6
+plink --bfile ffq_merged6 --bmerge ffq_snps_15.bed ffq_snps_15.bim ffq_snps_15.fam --recode --out ffq_merged7
+plink --bfile ffq_merged7 --bmerge ffq_snps_17.bed ffq_snps_17.bim ffq_snps_17.fam --recode --out ffq_merged8
+plink --bfile ffq_merged8 --bmerge ffq_snps_19.bed ffq_snps_19.bim ffq_snps_19.fam --recode --out ffq_merged9
+plink --bfile ffq_merged9 --bmerge ffq_snps_21.bed ffq_snps_21.bim ffq_snps_21.fam --recode --out ffq_merged
+
+## Construct a PRS for the FFQ variants.
+plink --bfile ffq_merged --recode
+plink --file ffq_merged --score FFQ_snps.txt 2 3 4 --out ffq_score
+
+## This is the derived variable file. The analysis continues in R.
+
+##################################################
+
+##########   MHQ POLYGENIC SCORE   ##########
+
+## Load the newer version of Plink.
+module load apps/plink/2.00
+plink
+
+## Do the extraction for SNPs in file "MHQ_snps.txt".
+## Only needed for the following chromosomes: 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 15, 16, 17, 18, 19, 20.
+plink --bgen filtered_01.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_01
+plink --bgen filtered_02.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_02
+plink --bgen filtered_03.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_03
+plink --bgen filtered_04.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_04
+plink --bgen filtered_05.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_05
+plink --bgen filtered_06.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_06
+plink --bgen filtered_07.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_07
+plink --bgen filtered_08.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_08
+plink --bgen filtered_09.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_09
+plink --bgen filtered_10.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_10
+plink --bgen filtered_11.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_11
+plink --bgen filtered_12.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_12
+plink --bgen filtered_15.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_15
+plink --bgen filtered_16.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_16
+plink --bgen filtered_17.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_17
+plink --bgen filtered_18.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_18
+plink --bgen filtered_19.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_19
+plink --bgen filtered_20.bgen --sample swapped.sample --missing-code 0 --extract MHQ_snps.txt --make-bed --out mhq_snps_20
+
+## Revert to the older version of Plink.
+module load apps/plink/1.90
+plink
+
+## Now merge the files together.
+plink --bfile mhq_snps_01 --bmerge mhq_snps_02.bed mhq_snps_02.bim mhq_snps_02.fam --recode --out mhq_merged2
+plink --bfile mhq_merged2 --bmerge mhq_snps_03.bed mhq_snps_03.bim mhq_snps_03.fam --recode --out mhq_merged3
+plink --bfile mhq_merged3 --bmerge mhq_snps_04.bed mhq_snps_04.bim mhq_snps_04.fam --recode --out mhq_merged4
+plink --bfile mhq_merged4 --bmerge mhq_snps_05.bed mhq_snps_05.bim mhq_snps_05.fam --recode --out mhq_merged5
+plink --bfile mhq_merged5 --bmerge mhq_snps_06.bed mhq_snps_06.bim mhq_snps_06.fam --recode --out mhq_merged6
+plink --bfile mhq_merged6 --bmerge mhq_snps_07.bed mhq_snps_07.bim mhq_snps_07.fam --recode --out mhq_merged7
+plink --bfile mhq_merged7 --bmerge mhq_snps_08.bed mhq_snps_08.bim mhq_snps_08.fam --recode --out mhq_merged8
+plink --bfile mhq_merged8 --bmerge mhq_snps_09.bed mhq_snps_09.bim mhq_snps_09.fam --recode --out mhq_merged9
+plink --bfile mhq_merged9 --bmerge mhq_snps_10.bed mhq_snps_10.bim mhq_snps_10.fam --recode --out mhq_merged10
+plink --bfile mhq_merged10 --bmerge mhq_snps_11.bed mhq_snps_11.bim mhq_snps_11.fam --recode --out mhq_merged11
+plink --bfile mhq_merged11 --bmerge mhq_snps_12.bed mhq_snps_12.bim mhq_snps_12.fam --recode --out mhq_merged12
+plink --bfile mhq_merged12 --bmerge mhq_snps_15.bed mhq_snps_15.bim mhq_snps_15.fam --recode --out mhq_merged13
+plink --bfile mhq_merged13 --bmerge mhq_snps_16.bed mhq_snps_16.bim mhq_snps_16.fam --recode --out mhq_merged14
+plink --bfile mhq_merged14 --bmerge mhq_snps_17.bed mhq_snps_17.bim mhq_snps_17.fam --recode --out mhq_merged15
+plink --bfile mhq_merged15 --bmerge mhq_snps_18.bed mhq_snps_18.bim mhq_snps_18.fam --recode --out mhq_merged16
+plink --bfile mhq_merged16 --bmerge mhq_snps_19.bed mhq_snps_19.bim mhq_snps_19.fam --recode --out mhq_merged17
+plink --bfile mhq_merged17 --bmerge mhq_snps_20.bed mhq_snps_20.bim mhq_snps_20.fam --recode --out mhq_merged
+
+## Construct a PRS for the FFQ variants.
+plink --bfile mhq_merged --recode
+plink --file mhq_merged --score MHQ_snps.txt 2 3 4 --out mhq_score
+
+## This is the derived variable file. The analysis continues in R.
+
+##################################################
+
+##########   PRS FOR PARTICIPATION   ##########
+
+## Load the newer version of Plink.
+module load apps/plink/2.00
+plink
+
+## Do the extraction for SNPs in file "Part_snps.txt".
+plink --bgen filtered_01.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_01
+plink --bgen filtered_02.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_02
+plink --bgen filtered_03.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_03
+plink --bgen filtered_04.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_04
+plink --bgen filtered_05.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_05
+plink --bgen filtered_06.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_06
+plink --bgen filtered_07.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_07
+plink --bgen filtered_08.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_08
+plink --bgen filtered_09.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_09
+plink --bgen filtered_10.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_10
+plink --bgen filtered_11.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_11
+plink --bgen filtered_12.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_12
+plink --bgen filtered_13.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_13
+plink --bgen filtered_14.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_14
+plink --bgen filtered_15.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_15
+plink --bgen filtered_16.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_16
+plink --bgen filtered_17.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_17
+plink --bgen filtered_18.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_18
+plink --bgen filtered_19.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_19
+plink --bgen filtered_20.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_20
+plink --bgen filtered_21.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_21
+plink --bgen filtered_22.bgen --sample swapped.sample --missing-code 0 --extract Part_snps.txt --make-bed --out extracted_part_prs4_22
+
+## Revert to the older version of Plink.
+module load apps/plink/1.90
+plink
+
+## Now merge the files together.
+plink --bfile extracted_part_prs4_01 --bmerge extracted_part_prs4_02.bed extracted_part_prs4_02.bim extracted_part_prs4_02.fam --recode --out merged2
+plink --bfile merged2 --bmerge extracted_part_prs4_03.bed extracted_part_prs4_03.bim extracted_part_prs4_03.fam --recode --out merged3
+plink --bfile merged3 --bmerge extracted_part_prs4_04.bed extracted_part_prs4_04.bim extracted_part_prs4_04.fam --recode --out merged4
+plink --bfile merged4 --bmerge extracted_part_prs4_05.bed extracted_part_prs4_05.bim extracted_part_prs4_05.fam --recode --out merged5
+plink --bfile merged5 --bmerge extracted_part_prs4_06.bed extracted_part_prs4_06.bim extracted_part_prs4_06.fam --recode --out merged6
+plink --bfile merged6 --bmerge extracted_part_prs4_07.bed extracted_part_prs4_07.bim extracted_part_prs4_07.fam --recode --out merged7
+plink --bfile merged7 --bmerge extracted_part_prs4_08.bed extracted_part_prs4_08.bim extracted_part_prs4_08.fam --recode --out merged8
+plink --bfile merged8 --bmerge extracted_part_prs4_09.bed extracted_part_prs4_09.bim extracted_part_prs4_09.fam --recode --out merged9
+plink --bfile merged9 --bmerge extracted_part_prs4_10.bed extracted_part_prs4_10.bim extracted_part_prs4_10.fam --recode --out merged10
+plink --bfile merged10 --bmerge extracted_part_prs4_11.bed extracted_part_prs4_11.bim extracted_part_prs4_11.fam --recode --out merged11
+plink --bfile merged11 --bmerge extracted_part_prs4_12.bed extracted_part_prs4_12.bim extracted_part_prs4_12.fam --recode --out merged12
+plink --bfile merged12 --bmerge extracted_part_prs4_13.bed extracted_part_prs4_13.bim extracted_part_prs4_13.fam --recode --out merged13
+plink --bfile merged13 --bmerge extracted_part_prs4_14.bed extracted_part_prs4_14.bim extracted_part_prs4_14.fam --recode --out merged14
+plink --bfile merged14 --bmerge extracted_part_prs4_15.bed extracted_part_prs4_15.bim extracted_part_prs4_15.fam --recode --out merged15
+plink --bfile merged15 --bmerge extracted_part_prs4_16.bed extracted_part_prs4_16.bim extracted_part_prs4_16.fam --recode --out merged16
+plink --bfile merged16 --bmerge extracted_part_prs4_17.bed extracted_part_prs4_17.bim extracted_part_prs4_17.fam --recode --out merged17
+plink --bfile merged17 --bmerge extracted_part_prs4_18.bed extracted_part_prs4_18.bim extracted_part_prs4_18.fam --recode --out merged18
+plink --bfile merged18 --bmerge extracted_part_prs4_19.bed extracted_part_prs4_19.bim extracted_part_prs4_19.fam --recode --out merged19
+plink --bfile merged19 --bmerge extracted_part_prs4_20.bed extracted_part_prs4_20.bim extracted_part_prs4_20.fam --recode --out merged20
+plink --bfile merged20 --bmerge extracted_part_prs4_21.bed extracted_part_prs4_21.bim extracted_part_prs4_21.fam --recode --out merged21
+plink --bfile merged21 --bmerge extracted_part_prs4_22.bed extracted_part_prs4_22.bim extracted_part_prs4_22.fam --recode --out merged_part_prs4
+
+## These variants are correlated, so prune them for LD. We use --indep for the pruning.
+plink --file merged_part_prs4 --indep-pairwise 1000 10 0.1 --out merged_part_prs4_test
+
+## Extract only the LD-pruned variants. This needs the new version of Plink.
+module load apps/plink/2.00
+plink
+plink --bfile merged_part_prs4 --extract merged_part_prs4_test.prune.in --make-bed --out Part_prs4_pruned
+
+## Then create the PRS. This needs the old version again.
+module load apps/plink/1.90
+plink
+plink --bfile Part_prs4_pruned --recode --out Part_prs4_pruned
+plink --file Part_prs4_pruned --score ALSPAC_part_prs4.txt 2 3 4 --out Part_prs4_score
+
+## This is the derived variable file. The analysis continues in R.
+
+##################################################
+
+
+
+
+
+##################################################
