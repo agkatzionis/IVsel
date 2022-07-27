@@ -55,11 +55,11 @@ expit <- function (x) {
 
 ##################################################
 
-##########   IPW - REGRESSION   ##########
+##########   INVERSE PROBABILITY WEIGHTING   ##########
 
 ## Perform IPW for a generalized linear model with missing outcome data.
 ## This fits a logistic function for missingness with no interactions.
-ipw.glm <- function (X, Y, Z = NA, x.in.w = TRUE, xy.family = gaussian, sel.family = binomial(link = "logit")) {
+ipw.glm <- function (X, Y, Z = NULL, x.in.w = TRUE, xy.family = gaussian, sel.family = binomial(link = "logit")) {
   
   ## Ensure arguments are of the right type.
   if (is.data.frame(X)) {
@@ -69,10 +69,10 @@ ipw.glm <- function (X, Y, Z = NA, x.in.w = TRUE, xy.family = gaussian, sel.fami
   } else if (is.matrix(X)) {
     d <- ncol(X)
   } else {
-    stop("X must be a vector or matrix.")
+    stop("Argument X must be a vector or matrix.")
   }
-  if (!is.vector(Y)) stop("Y must be a vector.")
-  if (all(is.na(Z))) {
+  if (!is.vector(Y)) stop("Argument Y must be a vector.")
+  if (is.null(Z)) {
     k <- 0
   } else if (is.data.frame(Z)) {
     stop("We are sorry that the current implementation of ipw.glm does not admit data frames as arguments. Please convert Z to a matrix.")
@@ -81,9 +81,9 @@ ipw.glm <- function (X, Y, Z = NA, x.in.w = TRUE, xy.family = gaussian, sel.fami
   } else if (is.matrix(Z)) {
     k <- ncol(Z)
   } else {
-    stop("Z must be a vector or matrix, if not NA.")
+    stop("Argument Z must be a vector or matrix, if not NULL.")
   }
-  if (!is.logical(x.in.w)) stop("Variable x.in.w must be assigned TRUE/FALSE values.")
+  if (!is.logical(x.in.w)) stop("Variable \"x.in.w\" must be assigned TRUE/FALSE values.")
   
   ## Ensure arguments are of the right dimension.
   if (is.vector(X)) {
@@ -91,7 +91,7 @@ ipw.glm <- function (X, Y, Z = NA, x.in.w = TRUE, xy.family = gaussian, sel.fami
   } else {
     if (nrow(X) != length(Y)) stop("X and Y have different length.")
   }
-  if (!(all(is.na(Z)))) {
+  if (!(is.null(Z))) {
     if (is.vector(Z)) {
       if (length(Z) != length(Y)) stop("Z and Y have different length.")
     } else if (is.matrix(Z)) {
@@ -104,7 +104,7 @@ ipw.glm <- function (X, Y, Z = NA, x.in.w = TRUE, xy.family = gaussian, sel.fami
   R <- !is.na(Y)
   
   ## Fit the propensity score model.
-  if (all(is.na(Z))) {
+  if (is.null(Z)) {
     
     ## ... without any additional variables to be used in the weighting model.
     if (all(x.in.w == TRUE)) {
@@ -151,8 +151,8 @@ ipw.glm <- function (X, Y, Z = NA, x.in.w = TRUE, xy.family = gaussian, sel.fami
 ##     of interest.
 ## - Y: a vector of outcome values for the regression of interest. 
 ##     Missing values should be denoted NA.
-## - Z: a vector or matrix with additional variables to be included 
-##     as covariates in the weighting model, but not in the
+## - Z: an optional vector or matrix with additional variables to be  
+##     included as covariates in the weighting model, but not in the
 ##     regression model.
 ## - x.in.w: a single logical value or logical vector of the same
 ##     length as X. If TRUE, all covariates in X are added to the
@@ -171,120 +171,96 @@ ipw.glm <- function (X, Y, Z = NA, x.in.w = TRUE, xy.family = gaussian, sel.fami
 ## data frames to matrices before passing them on to ipw.glm.
 
 
+
 ## Examples: 
 
-## Linear regression.
+## 1) Linear regression.
 
-## Seed it.
+## Generate data.
 set.seed(9153)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- rnorm(n, 0, 1)
-Z <- rnorm(n, 0, 1)
-Y <- 1 + X * 0.2 + rnorm(n, 0, 1)
-
-## Simulate the selection coefficient.
+X <- rnorm(n, 0, 1)   ## exposure
+Z <- rnorm(n, 0, 1)   ## variable affecting selection
+Y <- 1 + X * 0.2 + rnorm(n, 0, 1)   ## outcome
 R.probs <- expit(-0.5 + 0.5 * X + 0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(lm(Y[R == 1] ~ X[R == 1]))
-oracle.est <- summary(lm(Yall ~ X))
+summary(lm(Y[R == 1] ~ X[R == 1]))
+summary(lm(Yall ~ X))
 
 ## Inverse probability weighting.
 ipw.glm(X, Y, Z)
 ipw.glm(X, Y, Z, x.in.w = FALSE)
 ipw.glm(X, Y, Z, sel.family = binomial(link = "probit"))
-ipw.glm(X, Y, Z, sel.family = binomial(link = "cloglog"))
 
 
-## Logistic regression. 
+## 2) Logistic regression. 
 
-## Seed it.
+## Generate data.
 set.seed(9154)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- rnorm(n, 0, 1)
-Z <- rnorm(n, 0, 1)
+X <- rnorm(n, 0, 1)   ## exposure
+Z <- rnorm(n, 0, 1)   ## variable affecting selection
 Yprob <- expit(1 + X * 0.2)
-Y <- rbinom(n, 1, Yprob)
-
-## Simulate the selection coefficient.
+Y <- rbinom(n, 1, Yprob)   ## outcome
 R.probs <- expit(-0.5 + 0.5 * X + 0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(glm(Y[R == 1] ~ X[R == 1], family = binomial))
-oracle.est <- summary(glm(Yall ~ X, family = binomial))
+summary(glm(Y[R == 1] ~ X[R == 1], family = binomial))
+summary(glm(Yall ~ X, family = binomial))
 
 ## Inverse probability weighting.
 ipw.glm(X, Y, Z, xy.family = binomial(link = "logit"))
-ipw.glm(X, Y, Z, x.in.w = FALSE,  xy.family = binomial(link = "logit"))
-ipw.glm(X, Y, Z, xy.family = binomial(link = "probit"))
-ipw.glm(X, Y, Z, x.in.w = FALSE,  xy.family = binomial(link = "probit"))
-ipw.glm(X, Y, Z, xy.family = binomial(link = "probit"), sel.family = binomial(link = "probit"))
-ipw.glm(X, Y, Z, x.in.w = FALSE,  xy.family = binomial(link = "probit"), sel.family = binomial(link = "probit"))
 
 
-## Poisson regression.
+## 3) Poisson regression.
 
-## Seed it.
+## Generate data.
 set.seed(9155)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- rnorm(n, 0, 1)
-Z <- rnorm(n, 0, 1)
+X <- rnorm(n, 0, 1)   ## exposure
+Z <- rnorm(n, 0, 1)   ## variable affecting selection
 Y.link <- exp(1 + X * 0.2)
-Y <- rpois(n, Y.link)
-
-## Simulate the selection coefficient.
+Y <- rpois(n, Y.link)   ## outcome
 R.probs <- expit(-0.5 + 0.5 * X + 0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(glm(Y[R == 1] ~ X[R == 1], family = poisson))
-oracle.est <- summary(glm(Yall ~ X, family = poisson))
+summary(glm(Y[R == 1] ~ X[R == 1], family = poisson))
+summary(glm(Yall ~ X, family = poisson))
 
 ## Inverse probability weighting.
 ipw.glm(X, Y, Z, xy.family = poisson(link = "log"))
-ipw.glm(X, Y, Z, x.in.w = FALSE,  xy.family = poisson(link = "log"))
-ipw.glm(X, Y, Z)
-ipw.glm(X, Y, Z, x.in.w = FALSE)
 
 
-## Linear regression with many X, Z.
+## 4) Linear regression with many X, Z.
 
-## Seed it.
+## Generate data.
 set.seed(9156)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1.2), rnorm(n, -1, 0.8))
-Z <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1))
-Y <- 1 + as.vector(X %*% c(0.2, 0.1, 0.1)) + rnorm(n, 0, 1)
-
-## Simulate the selection coefficient.
+X <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1.2), rnorm(n, -1, 0.8))   ## exposures
+Z <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1))   ## variables affecting selection
+Y <- 1 + as.vector(X %*% c(0.2, 0.1, 0.1)) + rnorm(n, 0, 1)   ## outcome
 R.probs <- expit(-0.5 +  as.vector(X %*% c(0.2, 0.1, 0.1)) +  as.vector(Z %*% c(0.3, 0.2)) + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(lm(Y[R == 1] ~ X[R == 1, ]))
-oracle.est <- summary(lm(Yall ~ X))
+summary(lm(Y[R == 1] ~ X[R == 1, ]))
+summary(lm(Yall ~ X))
 
 ## Inverse probability weighting.
 ipw.glm(X, Y, Z)
-ipw.glm(X, Y, Z, x.in.w = FALSE)
+ipw.glm(X, Y, Z, x.in.w = c(FALSE, TRUE, FALSE))
 
 ##################################################
 
@@ -302,7 +278,7 @@ ipw.glm(X, Y, Z, x.in.w = FALSE)
 ##########   TTW - LINEAR REGRESSION   ##########
 
 ## Run the TTW method for a linear regression model with missing outcome data.
-ttw.linear <- function (X, Y, Z, C = NA, partial = TRUE) {
+ttw.linear <- function (X, Y, Z, C = NULL, partial = TRUE) {
   
   ## Ensure arguments are of the right type.
   if (is.data.frame(X)) {
@@ -315,19 +291,19 @@ ttw.linear <- function (X, Y, Z, C = NA, partial = TRUE) {
     stop("X must be a vector or matrix.")
   }
   if (!is.vector(Y)) stop("Y must be a vector.")
-  if (all(is.na(C))) {
+  if (is.null(C)) {
     k <- 0
   } else if (is.data.frame(C)) {
     stop("We are sorry that the current implementation of ttw.linear does not admit data frames as arguments. Please convert C to a matrix.")
   } else if (is.vector(C)) {
     k <- 1
-  } else if (is.matrix(C) | is.data.frame(C)) {
+  } else if (is.matrix(C)) {
     k <- ncol(C)
   } else {
-    stop("C must be a vector or matrix, if not NA.")
+    stop("C must be a vector or matrix, if not NULL.")
   }
   if (!is.vector(Z)) stop("Z must be a vector.")
-  if (!is.logical(partial)) stop("Argument ''partial'' must take a TRUE/FALSE value.")
+  if (!is.logical(partial)) stop("Argument \"partial\" must take a TRUE/FALSE value.")
   
   ## Ensure arguments are of the right dimension.
   if (is.vector(X)) {
@@ -335,7 +311,7 @@ ttw.linear <- function (X, Y, Z, C = NA, partial = TRUE) {
   } else {
     if (nrow(X) != length(Y)) stop("X and Y have different length.")
   }
-  if (!(all(is.na(C)))) {
+  if (!(is.null(C))) {
     if (is.vector(C)) {
       if (length(C) != length(Y)) stop("C and Y have different length.")
     } else if (is.matrix(C)) {
@@ -357,13 +333,8 @@ ttw.linear <- function (X, Y, Z, C = NA, partial = TRUE) {
     prm2 <- rep(0, 2 * d + k + 3)
     
     ## Run the optimization.
-    if (all(is.na(C))) {
-      opt1 <- optim(par = prm1, partial.lik1, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z)
-      opt2 <- optim(par = prm2, partial.lik2, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = NA, Y = Y, alpha.hat = opt1$par, hessian = TRUE)
-    } else {
-      opt1 <- optim(par = prm1, partial.lik1, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z)
-      opt2 <- optim(par = prm2, partial.lik2, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = C, Y = Y, alpha.hat = opt1$par, hessian = TRUE)
-    }
+    opt1 <- optim(par = prm1, partial.lik1, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z)
+    opt2 <- optim(par = prm2, partial.lik2, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = C, Y = Y, alpha.hat = opt1$par, hessian = TRUE)
     
     ## Invert the Hessian, compute standard errors.
     inv.hessian <- solve(- opt2$hessian)
@@ -393,11 +364,7 @@ ttw.linear <- function (X, Y, Z, C = NA, partial = TRUE) {
     prm <- rep(0, 3 * d + k + 5)
     
     ## Run the optimization.
-    if (all(is.na(C))) {
-      opt2 <- optim(par = prm, full.lik, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = NA, Y = Y, hessian = TRUE)
-    } else {
-      opt2 <- optim(par = prm, full.lik, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = C, Y = Y, hessian = TRUE)
-    }
+    opt2 <- optim(par = prm, full.lik, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = C, Y = Y, hessian = TRUE)
     
     ## Invert the Hessian, compute standard errors.
     inv.hessian <- solve(- opt2$hessian)
@@ -425,7 +392,7 @@ ttw.linear <- function (X, Y, Z, C = NA, partial = TRUE) {
   res <- cbind(Estimate, StdError)
   res.nam <- "Intercept"
   if (is.vector(X)) res.nam <- c(res.nam, "X") else if (!(is.null(colnames(X)))) res.nam <- c(res.nam, colnames(X)) else res.nam <- c(res.nam, paste("X", 1:d, sep = ""))
-  if (!(all(is.na(C)))) {
+  if (!(is.null(C))) {
     if (is.vector(C)) res.nam <- c(res.nam, "C") else if (!(is.null(colnames(C)))) res.nam <- c(res.nam, colnames(C)) else res.nam <- c(res.nam, paste("C", 1:k, sep = ""))
   }
   rownames(res) <- res.nam
@@ -503,123 +470,76 @@ full.lik <- function (theta, X, Z, R, Y, C) {
   
 }
 
+
+
 ## Examples:
 
-## Simple linear regression.
+## 1) Simple linear regression with no additional variables C.
 
-## Seed it.
+## Generate data.
 set.seed(9253)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- rnorm(n, 0, 1)
-Z <- rnorm(n, 0, 1)
-Y <- 1 + X * 0.2 + rnorm(n, 0, 1)
-
-## Simulate the selection coefficient.
+X <- rnorm(n, 0, 1)   ## exposure
+Z <- rnorm(n, 0, 1)   ## instrument for selection
+Y <- 1 + X * 0.2 + rnorm(n, 0, 1)   ## outcome
 R.probs <- expit(-0.5 + 0.5 * X + 0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(lm(Y[R == 1] ~ X[R == 1]))
-oracle.est <- summary(lm(Yall ~ X))
+summary(lm(Y[R == 1] ~ X[R == 1]))
+summary(lm(Yall ~ X))
 
-## Inverse probability weighting.
-ipw1 <- ipw.glm(X, Y, Z = NA)
-ipw2 <- ipw.glm(X, Y, Z = Z, x.in.w = FALSE)
-
-## TTW method.
-ttw.fit1 <- ttw.linear(X = X, Y = Y, Z = Z, C = NA, partial = TRUE)
-ttw.fit2 <- ttw.linear(X = X, Y = Y, Z = Z, C = NA, partial = FALSE)
-
-## Results.
-naive.est$coefficients
-oracle.est$coefficients
-ipw1$coefficients
-ipw2$coefficients
-ttw.fit1
-ttw.fit2
+## Implement the TTW method.
+ttw.linear(X = X, Y = Y, Z = Z)
+ttw.linear(X = X, Y = Y, Z = Z, partial = FALSE)
 
 
-## Linear regression with one X, many C.
+## 2) Linear regression with one exposure X and many additional covariates C.
 
-## Seed it.
+## Generate data.
 set.seed(9254)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- rnorm(n, 0, 1)
-Z <- rnorm(n, 0, 1)
-C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))
-Y <- 1 + 0.2 * X + as.vector(C %*% c(0.2, -0.2, 0.1)) + rnorm(n, 0, 1)
-
-## Simulate the selection coefficient.
+X <- rnorm(n, 0, 1)   ## exposure
+Z <- rnorm(n, 0, 1)   ## instrument for selection
+C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))   ## covariates for inference but not selection
+Y <- 1 + 0.2 * X + as.vector(C %*% c(0.2, -0.2, 0.1)) + rnorm(n, 0, 1)   ## outcome
 R.probs <- expit(-0.5 + 0.5 * X +  0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(lm(Y[R == 1] ~ X[R == 1] + C[R == 1, ]))
-oracle.est <- summary(lm(Yall ~ X + C))
+summary(lm(Y[R == 1] ~ X[R == 1] + C[R == 1, ]))
+summary(lm(Yall ~ X + C))
 
-## Inverse probability weighting.
-ipw1 <- ipw.glm(cbind(X, C), Y, Z = NA, x.in.w = c(TRUE, FALSE, FALSE, FALSE))
-ipw2 <- ipw.glm(cbind(X, C), Y, Z = Z, x.in.w = FALSE)
-
-## TTW method.
-ttw.fit1 <- ttw.linear(X = X, Y = Y, Z = Z, C = C, partial = TRUE)
-ttw.fit2 <- ttw.linear(X = X, Y = Y, Z = Z, C = C, partial = FALSE)
-
-## Results.
-naive.est$coefficients
-oracle.est$coefficients
-ipw1$coefficients
-ipw2$coefficients
-ttw.fit1
-ttw.fit2
+## Implement the TTW method.
+ttw.linear(X = X, Y = Y, Z = Z, C = C)
+ttw.linear(X = X, Y = Y, Z = Z, C = C, partial = FALSE)
 
 
-## Linear regression with many X, many C.
+## 3) Linear regression with many exposures X and many additional covariates C.
 
-## Seed it.
+## Generate data.
 set.seed(9255)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- cbind(rnorm(n, 0, 1), rnorm(n, -2, 1.2), rnorm(n, 2, 1.1))
-Z <- rnorm(n, 0, 1)
-C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))
-Y <- 1 + as.vector(X %*% c(0.2, -0.1, -0.1)) + as.vector(C %*% c(0.2, -0.2, 0.1)) + rnorm(n, 0, 1)
-
-## Simulate the selection coefficient.
+X <- cbind(rnorm(n, 0, 1), rnorm(n, -2, 1.2), rnorm(n, 2, 1.1))   ## exposure
+Z <- rnorm(n, 0, 1)   ## instrument for selection
+C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))   ## covariates for inference but not selection
+Y <- 1 + as.vector(X %*% c(0.2, -0.1, -0.1)) + as.vector(C %*% c(0.2, -0.2, 0.1)) + rnorm(n, 0, 1)   ## outcome
 R.probs <- expit(-0.5 + as.vector(X %*% c(0.2, 0.2, 0.1)) +  0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(lm(Y[R == 1] ~ X[R == 1, ] + C[R == 1, ]))
-oracle.est <- summary(lm(Yall ~ X + C))
+summary(lm(Y[R == 1] ~ X[R == 1, ] + C[R == 1, ]))
+summary(lm(Yall ~ X + C))
 
-## Inverse probability weighting.
-ipw1 <- ipw.glm(cbind(X, C), Y, Z = NA, x.in.w = c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE))
-ipw2 <- ipw.glm(cbind(X, C), Y, Z = Z, x.in.w = FALSE)
-
-## TTW method.
-ttw.fit1 <- ttw.linear(X = X, Y = Y, Z = Z, C = C, partial = TRUE)
-ttw.fit2 <- ttw.linear(X = X, Y = Y, Z = Z, C = C, partial = FALSE)
-
-## Results.
-naive.est$coefficients
-oracle.est$coefficients
-ipw1$coefficients
-ipw2$coefficients
-ttw.fit1
-ttw.fit2
-
+## Implement the TTW method.
+ttw.linear(X = X, Y = Y, Z = Z, C = C)
+ttw.linear(X = X, Y = Y, Z = Z, C = C, partial = FALSE)
 
 ##################################################
 
@@ -627,7 +547,7 @@ ttw.fit2
 
 ## Run the TTW method for a logistic regression model with missing outcome data.
 ## This only admits full-likelihood optimization (no partial likelihood).
-ttw.logistic <- function (X, Y, Z, C = NA) {
+ttw.logistic <- function (X, Y, Z, C = NULL) {
   
   ## Ensure arguments are of the right type.
   if (is.data.frame(X)) {
@@ -640,16 +560,16 @@ ttw.logistic <- function (X, Y, Z, C = NA) {
     stop("X must be a vector or matrix.")
   }
   if (!is.vector(Y)) stop("Y must be a vector.")
-  if (all(is.na(C))) {
+  if (is.null(C)) {
     k <- 0
   } else if (is.data.frame(C)) {
     stop("We are sorry that the current implementation of ttw.linear does not admit data frames as arguments. Please convert C to a matrix.")
   } else if (is.vector(C)) {
     k <- 1
-  } else if (is.matrix(C) | is.data.frame(C)) {
+  } else if (is.matrix(C)) {
     k <- ncol(C)
   } else {
-    stop("C must be a vector or matrix, if not NA.")
+    stop("C must be a vector or matrix, if not NULL.")
   }
   if (!is.vector(Z)) stop("Z must be a vector.")
 
@@ -659,7 +579,7 @@ ttw.logistic <- function (X, Y, Z, C = NA) {
   } else {
     if (nrow(X) != length(Y)) stop("X and Y have different length.")
   }
-  if (!(all(is.na(C)))) {
+  if (!(is.null(C))) {
     if (is.vector(C)) {
       if (length(C) != length(Y)) stop("C and Y have different length.")
     } else if (is.matrix(C)) {
@@ -682,11 +602,6 @@ ttw.logistic <- function (X, Y, Z, C = NA) {
   
   ## Run the optimization.
   opt2 <- optim(par = prm, full.logit.lik, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = C, Y = Y, hessian = TRUE)
-  #if (all(is.na(C))) {
-  #  opt2 <- optim(par = prm, full.logit.lik, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = NA, Y = Y, hessian = TRUE)
-  #} else {
-  #  opt2 <- optim(par = prm, full.logit.lik, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = C, Y = Y, hessian = TRUE)
-  #}
   
   ## Invert the Hessian, compute standard errors.
   inv.hessian <- solve(- opt2$hessian)
@@ -712,7 +627,7 @@ ttw.logistic <- function (X, Y, Z, C = NA) {
   res <- cbind(Estimate, StdError)
   res.nam <- "Intercept"
   if (is.vector(X)) res.nam <- c(res.nam, "X") else if (!(is.null(colnames(X)))) res.nam <- c(res.nam, colnames(X)) else res.nam <- c(res.nam, paste("X", 1:d, sep = ""))
-  if (!(all(is.na(C)))) {
+  if (!(is.null(C))) {
     if (is.vector(C)) res.nam <- c(res.nam, "C") else if (!(is.null(colnames(C)))) res.nam <- c(res.nam, colnames(C)) else res.nam <- c(res.nam, paste("C", 1:k, sep = ""))
   }
   rownames(res) <- res.nam
@@ -764,126 +679,82 @@ full.logit.lik <- function (theta, X, Z, R, Y, C) {
 }
 
 
+
 ## Examples:
 
-## Simple logistic regression.
+## 1) Simple logistic regression with no additional variables C.
 
-## Seed it.
+## Generate data.
 set.seed(9353)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- rnorm(n, 0, 1)
-Z <- rnorm(n, 0, 1)
+X <- rnorm(n, 0, 1)   ## exposure
+Z <- rnorm(n, 0, 1)   ## instrument for selection
 Y.prob <- expit(1 + X * 0.2)
-Y <- rbinom(n, 1, Y.prob)
-
-## Simulate the selection coefficient.
+Y <- rbinom(n, 1, Y.prob)   ## outcome
 R.probs <- expit(-0.5 + 0.5 * X + 0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(glm(Y[R == 1] ~ X[R == 1], family = binomial))
-oracle.est <- summary(glm(Yall ~ X, family = binomial))
+summary(glm(Y[R == 1] ~ X[R == 1], family = binomial))
+summary(glm(Yall ~ X, family = binomial))
 
-## Inverse probability weighting.
-ipw1 <- ipw.glm(X, Y, Z = NA, xy.family = binomial)
-ipw2 <- ipw.glm(X, Y, Z = Z, x.in.w = FALSE, xy.family = binomial)
-
-## TTW method.
-ttw.fit1 <- ttw.logistic(X = X, Y = Y, Z = Z, C = NA)
-
-## Results.
-naive.est$coefficients
-oracle.est$coefficients
-ipw1$coefficients
-ipw2$coefficients
-ttw.fit1
+## Implement the TTW method.
+ttw.logistic(X = X, Y = Y, Z = Z, C = NA)
 
 
-## Linear regression with one X, many C.
+## 2) Logistic regression with one exposure X and many additional covariates C.
 
-## Seed it.
+## Generate data.
 set.seed(9354)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- rnorm(n, 0, 1)
-Z <- rnorm(n, 0, 1)
-C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))
+X <- rnorm(n, 0, 1)   ## exposure
+Z <- rnorm(n, 0, 1)   ## instrument for selection
+C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))   ## covariates for inference but not selection
 Y.prob <- expit(1 + 0.2 * X + as.vector(C %*% c(0.2, -0.2, 0.1)))
-Y <- rbinom(n, 1, Y.prob)
-
-## Simulate the selection coefficient.
+Y <- rbinom(n, 1, Y.prob)   ## outcome
 R.probs <- expit(-0.5 + 0.5 * X +  0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(glm(Y[R == 1] ~ X[R == 1] + C[R == 1, ], family = binomial))
-oracle.est <- summary(glm(Yall ~ X + C, family = binomial))
+summary(glm(Y[R == 1] ~ X[R == 1] + C[R == 1, ], family = binomial))
+summary(glm(Yall ~ X + C, family = binomial))
 
-## Inverse probability weighting.
-ipw1 <- ipw.glm(cbind(X, C), Y, Z = NA, x.in.w = c(TRUE, FALSE, FALSE, FALSE), xy.family = binomial)
-ipw2 <- ipw.glm(cbind(X, C), Y, Z = Z, x.in.w = FALSE, xy.family = binomial)
-
-## TTW method.
-ttw.fit1 <- ttw.logistic(X = X, Y = Y, Z = Z, C = C)
-
-## Results.
-naive.est$coefficients
-oracle.est$coefficients
-ipw1$coefficients
-ipw2$coefficients
-ttw.fit1
+## Implement the TTW method.
+ttw.logistic(X = X, Y = Y, Z = Z, C = C)
 
 
-## Linear regression with many X, many C.
+## 3) Logistic regression with many exposures X and many additional covariates C.
 
-## Seed it.
+## Generate data.
 set.seed(9355)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- cbind(rnorm(n, 0, 1), rnorm(n, -2, 1.2), rnorm(n, 2, 1.1))
-Z <- rnorm(n, 0, 1)
-C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))
+X <- cbind(rnorm(n, 0, 1), rnorm(n, -2, 1.2), rnorm(n, 2, 1.1))   ## exposures
+Z <- rnorm(n, 0, 1)   ## instrument for selection
+C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))   ## covariates for inference but not selection
 Y.prob <- expit(1 + as.vector(X %*% c(0.2, -0.1, -0.1)) + as.vector(C %*% c(0.2, -0.2, 0.1)))
-Y <- rbinom(n, 1, Y.prob)
-
-## Simulate the selection coefficient.
+Y <- rbinom(n, 1, Y.prob)   ## outcome
 R.probs <- expit(-0.5 + as.vector(X %*% c(0.2, 0.2, 0.1)) +  0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(glm(Y[R == 1] ~ X[R == 1, ] + C[R == 1, ], family = binomial))
-oracle.est <- summary(glm(Yall ~ X + C, family = binomial))
+summary(glm(Y[R == 1] ~ X[R == 1, ] + C[R == 1, ], family = binomial))
+summary(glm(Yall ~ X + C, family = binomial))
 
-## Inverse probability weighting.
-ipw1 <- ipw.glm(cbind(X, C), Y, Z = NA, x.in.w = c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE), xy.family = binomial)
-ipw2 <- ipw.glm(cbind(X, C), Y, Z = Z, x.in.w = FALSE, xy.family = binomial)
-
-## TTW method.
-ttw.fit1 <- ttw.logistic(X = X, Y = Y, Z = Z, C = C)
-
-## Results.
-naive.est$coefficients
-oracle.est$coefficients
-ipw1$coefficients
-ipw2$coefficients
-ttw.fit1
+## Implement the TTW method.
+ttw.logistic(X = X, Y = Y, Z = Z, C = C)
 
 ##################################################
 
 ##########   TTW - POISSON REGRESSION   ##########
 
 ## Run the TTW method for a Poisson regression model with missing outcome data.
-ttw.poisson <- function (X, Y, Z, C = NA, partial = TRUE) {
+ttw.poisson <- function (X, Y, Z, C = NULL, partial = TRUE) {
   
   ## Ensure arguments are of the right type.
   if (is.data.frame(X)) {
@@ -896,19 +767,19 @@ ttw.poisson <- function (X, Y, Z, C = NA, partial = TRUE) {
     stop("X must be a vector or matrix.")
   }
   if (!is.vector(Y)) stop("Y must be a vector.")
-  if (all(is.na(C))) {
+  if (is.null(C)) {
     k <- 0
   } else if (is.data.frame(C)) {
     stop("We are sorry that the current implementation of ttw.linear does not admit data frames as arguments. Please convert C to a matrix.")
   } else if (is.vector(C)) {
     k <- 1
-  } else if (is.matrix(C) | is.data.frame(C)) {
+  } else if (is.matrix(C)) {
     k <- ncol(C)
   } else {
-    stop("C must be a vector or matrix, if not NA.")
+    stop("C must be a vector or matrix, if not NULL.")
   }
   if (!is.vector(Z)) stop("Z must be a vector.")
-  if (!is.logical(partial)) stop("Argument ''partial'' must take a TRUE/FALSE value.")
+  if (!is.logical(partial)) stop("Argument \"partial\" must take a TRUE/FALSE value.")
   
   ## Ensure arguments are of the right dimension.
   if (is.vector(X)) {
@@ -916,7 +787,7 @@ ttw.poisson <- function (X, Y, Z, C = NA, partial = TRUE) {
   } else {
     if (nrow(X) != length(Y)) stop("X and Y have different length.")
   }
-  if (!(all(is.na(C)))) {
+  if (!(is.null(C))) {
     if (is.vector(C)) {
       if (length(C) != length(Y)) stop("C and Y have different length.")
     } else if (is.matrix(C)) {
@@ -926,7 +797,7 @@ ttw.poisson <- function (X, Y, Z, C = NA, partial = TRUE) {
   if (length(Z) != length(Y)) stop("Z and Y have different length.")
   
   ## Check if the outcome contains integer values.
-  if (!(all(Y[which(!(is.na(Y)))] - floor(Y[which(!(is.na(Y)))]) == 0))) warning("Non-integer values detected for the outcome.")
+  #if (!(all(Y[which(!(is.na(Y)))] - floor(Y[which(!(is.na(Y)))]) == 0))) warning("Non-integer values detected for the outcome.")
   
   ## Detect which individuals have observed outcome values.
   if (sum(is.na(Y)) == 0) warning("No missing data detected for the outcome.")
@@ -941,13 +812,6 @@ ttw.poisson <- function (X, Y, Z, C = NA, partial = TRUE) {
     prm2 <- rep(0, 2 * d + k + 2)
     
     ## Run the optimization.
-    #if (all(is.na(C))) {
-    #  opt1 <- optim(par = prm1, partial.poisson.lik1, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z)
-    #  opt2 <- optim(par = prm2, partial.poisson.lik2, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = NA, Y = Y, alpha.hat = opt1$par, hessian = TRUE)
-    #} else {
-    #  opt1 <- optim(par = prm1, partial.poisson.lik1, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z)
-    #  opt2 <- optim(par = prm2, partial.poisson.lik2, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = C, Y = Y, alpha.hat = opt1$par, hessian = TRUE)
-    #}
     opt1 <- optim(par = prm1, partial.poisson.lik1, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z)
     opt2 <- optim(par = prm2, partial.poisson.lik2, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = C, Y = Y, alpha.hat = opt1$par, hessian = TRUE)
     
@@ -979,11 +843,6 @@ ttw.poisson <- function (X, Y, Z, C = NA, partial = TRUE) {
     prm <- rep(0, 3 * d + k + 4)
     
     ## Run the optimization.
-    #if (all(is.na(C))) {
-    #  opt2 <- optim(par = prm, full.poisson.lik, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = NA, Y = Y, hessian = TRUE)
-    #} else {
-    #  opt2 <- optim(par = prm, full.poisson.lik, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = C, Y = Y, hessian = TRUE)
-    #}
     opt2 <- optim(par = prm, full.poisson.lik, method = "BFGS", control = list(fnscale = -1), X = X, R = R, Z = Z, C = C, Y = Y, hessian = TRUE)
     
     ## Invert the Hessian, compute standard errors.
@@ -1012,7 +871,7 @@ ttw.poisson <- function (X, Y, Z, C = NA, partial = TRUE) {
   res <- cbind(Estimate, StdError)
   res.nam <- "Intercept"
   if (is.vector(X)) res.nam <- c(res.nam, "X") else if (!(is.null(colnames(X)))) res.nam <- c(res.nam, colnames(X)) else res.nam <- c(res.nam, paste("X", 1:d, sep = ""))
-  if (!(all(is.na(C)))) {
+  if (!(is.null(C))) {
     if (is.vector(C)) res.nam <- c(res.nam, "C") else if (!(is.null(colnames(C)))) res.nam <- c(res.nam, colnames(C)) else res.nam <- c(res.nam, paste("C", 1:k, sep = ""))
   }
   rownames(res) <- res.nam
@@ -1093,135 +952,86 @@ full.poisson.lik <- function (theta, X, Z, R, Y, C) {
 }
 
 
+
 ## Examples:
 
-## Simple Poisson regression.
+## 1) Simple Poisson regression with no additional variables C.
 
-## Seed it.
+## Generate data.
 set.seed(9453)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- rnorm(n, 0, 1)
-Z <- rnorm(n, 0, 1)
+X <- rnorm(n, 0, 1)   ## exposure
+Z <- rnorm(n, 0, 1)   ## instrument for selection
 Y.link <- exp(1 + X * 0.2)
-Y <- rpois(n, Y.link)
-
-## Simulate the selection coefficient.
+Y <- rpois(n, Y.link)   ## outcome
 R.probs <- expit(-0.5 + 0.5 * X + 0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(glm(Y[R == 1] ~ X[R == 1], family = poisson))
-oracle.est <- summary(glm(Yall ~ X, family = poisson))
+summary(glm(Y[R == 1] ~ X[R == 1], family = poisson))
+summary(glm(Yall ~ X, family = poisson))
 
-## Inverse probability weighting.
-ipw1 <- ipw.glm(X, Y, Z = NA, xy.family = poisson)
-ipw2 <- ipw.glm(X, Y, Z = Z, x.in.w = FALSE, xy.family = poisson)
-
-## TTW method.
-ttw.fit1 <- ttw.poisson(X = X, Y = Y, Z = Z, C = NA, partial = TRUE)
-ttw.fit2 <- ttw.poisson(X = X, Y = Y, Z = Z, C = NA, partial = FALSE)
-
-## Results.
-naive.est$coefficients
-oracle.est$coefficients
-ipw1$coefficients
-ipw2$coefficients
-ttw.fit1
-ttw.fit2
+## Implement the TTW method.
+ttw.poisson(X = X, Y = Y, Z = Z)
+ttw.poisson(X = X, Y = Y, Z = Z, partial = FALSE)
 
 
-## Linear regression with one X, many C.
+## 2) Poisson regression with one exposure X and many additional covariates C.
 
-## Seed it.
+## Generate data.
 set.seed(9454)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- rnorm(n, 0, 1)
-Z <- rnorm(n, 0, 1)
-C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))
+X <- rnorm(n, 0, 1)   ## exposure
+Z <- rnorm(n, 0, 1)   ## instrument for selection
+C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))   ## covariates for inference but not selection
 Y.link <- exp(1 + 0.2 * X + as.vector(C %*% c(0.2, -0.2, 0.1)))
-Y <- rpois(n, Y.link)
-
-## Simulate the selection coefficient.
+Y <- rpois(n, Y.link)   ## outcome
 R.probs <- expit(-0.5 + 0.5 * X +  0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(glm(Y[R == 1] ~ X[R == 1] + C[R == 1, ], family = poisson))
-oracle.est <- summary(glm(Yall ~ X + C, family = poisson))
+summary(glm(Y[R == 1] ~ X[R == 1] + C[R == 1, ], family = poisson))
+summary(glm(Yall ~ X + C, family = poisson))
 
-## Inverse probability weighting.
-ipw1 <- ipw.glm(cbind(X, C), Y, Z = NA, x.in.w = c(TRUE, FALSE, FALSE, FALSE), xy.family = poisson)
-ipw2 <- ipw.glm(cbind(X, C), Y, Z = Z, x.in.w = FALSE, xy.family = poisson)
-
-## TTW method.
-ttw.fit1 <- ttw.poisson(X = X, Y = Y, Z = Z, C = C, partial = TRUE)
-ttw.fit2 <- ttw.poisson(X = X, Y = Y, Z = Z, C = C, partial = FALSE)
-
-## Results.
-naive.est$coefficients
-oracle.est$coefficients
-ipw1$coefficients
-ipw2$coefficients
-ttw.fit1
-ttw.fit2
+## Implement the TTW method.
+ttw.poisson(X = X, Y = Y, Z = Z, C = C)
+ttw.poisson(X = X, Y = Y, Z = Z, C = C, partial = FALSE)
 
 
-## Linear regression with many X, many C.
+## 3) Poisson regression with many exposures X and many additional covariates C.
 
-## Seed it.
+## Generate data.
 set.seed(9455)
-
-## Simulate the covariates, outcome and instrument.
 n <- 10000
-X <- cbind(rnorm(n, 0, 1), rnorm(n, -2, 1.2), rnorm(n, 2, 1.1))
-Z <- rnorm(n, 0, 1)
-C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))
+X <- cbind(rnorm(n, 0, 1), rnorm(n, -2, 1.2), rnorm(n, 2, 1.1))   ## exposures
+Z <- rnorm(n, 0, 1)   ## instrument for selection
+C <- cbind(rnorm(n, 0, 1), rnorm(n, 2, 1), rnorm(n, -1, 0.8))   ## covariates for inference but not selection
 Y.link <- exp(1 + as.vector(X %*% c(0.2, -0.1, -0.1)) + as.vector(C %*% c(0.2, -0.2, 0.1)))
-Y <- rpois(n, Y.link)
-
-## Simulate the selection coefficient.
+Y <- rpois(n, Y.link)   ## outcome
 R.probs <- expit(-0.5 + as.vector(X %*% c(0.2, 0.2, 0.1)) +  0.4 * Z + 0.5 * Y)
-R <- rbinom(n, 1, R.probs)
+R <- rbinom(n, 1, R.probs)   ## selection
 Yall <- Y
 Y[R == 0] <- NA
 
 ## Naive and oracle estimates.
-naive.est <- summary(glm(Y[R == 1] ~ X[R == 1, ] + C[R == 1, ], family = poisson))
-oracle.est <- summary(glm(Yall ~ X + C, family = poisson))
+summary(glm(Y[R == 1] ~ X[R == 1, ] + C[R == 1, ], family = poisson))
+summary(glm(Yall ~ X + C, family = poisson))
 
-## Inverse probability weighting.
-ipw1 <- ipw.glm(cbind(X, C), Y, Z = NA, x.in.w = c(TRUE, TRUE, TRUE, FALSE, FALSE, FALSE), xy.family = poisson)
-ipw2 <- ipw.glm(cbind(X, C), Y, Z = Z, x.in.w = FALSE, xy.family = poisson)
-
-## TTW method.
-ttw.fit1 <- ttw.poisson(X = X, Y = Y, Z = Z, C = C, partial = TRUE)
-ttw.fit2 <- ttw.poisson(X = X, Y = Y, Z = Z, C = C, partial = FALSE)
-
-## Results.
-naive.est$coefficients
-oracle.est$coefficients
-ipw1$coefficients
-ipw2$coefficients
-ttw.fit1
-ttw.fit2
+## Implement the TTW method.
+ttw.poisson(X = X, Y = Y, Z = Z, C = C)
+ttw.poisson(X = X, Y = Y, Z = Z, C = C, partial = FALSE)
 
 ##################################################
 
 ##########   BOUNDS FOR SELECTION BIAS   ##########
 
 ## Finally, we provide some R code to compute the selection bias
-## bounds developed in Marden et al. (2018).
-
-## The function computes nonparametric, Robins-Manski, Bayesian 
-## and Asymptotic bounds, as described in Marden et al. (2018),
+## bounds developed in Marden et al. (2018). The function computes 
+## nonparametric, Robins-Manski, Bayesian and Asymptotic bounds, 
 ## and conducts a chi-squared test of association between Z and Y.
 sel.bias.bounds <- function (data, alpha = 0.95, n.draws = 1000, seed = NULL) {
   
@@ -1237,6 +1047,9 @@ sel.bias.bounds <- function (data, alpha = 0.95, n.draws = 1000, seed = NULL) {
   if (!is.numeric(n.draws) | length(n.draws) != 1) stop("Argument \"n.draws\" must be a single number between 0 and 1.")
   if (!is.numeric(seed) | length(seed) != 1) stop("Argument \"seed\" must be a single number between 0 and 1.")
   if (!is.integer(n.draws)) n.draws <- as.integer(n.draws)
+  
+  ## Turn the argument into a dataframe to make sure the operator "$" works.
+  if (is.matrix(data)) data <- as.data.frame(data)
   
   ## Make sure the numbers add up.
   if (!(all(data$Diseased + data$Healthy == data$Observed))) stop("The \"Diseased\" and \"Healthy\" counts do not sum to \"Observed\".")
@@ -1322,16 +1135,27 @@ sel.bias.bounds <- function (data, alpha = 0.95, n.draws = 1000, seed = NULL) {
 ## - n.draws: the number of random draws for the Bayesian set.
 ## - seed: a seed to initialize the random sampling.
 
-## Examples:
 
 
+## Example:
 
+## Zambia hiv data (from Marden et al. 2018).
+hiv <- cbind(0:29,
+             c(178, 191, 242, 218, 304, 118,  80, 312, 188, 242, 183, 171, 267, 159, 180, 232, 124, 1332, 101, 306, 151, 288, 208, 128, 274, 134, 251, 130, 203, 221), 
+             c( 23,  25,  39,  37,  58,  23,  16,  66,  40,  54,  42,  41,  67,  42,  50,  65,  35,  378,  29,  89,  45,  89,  66,  42,  96,  50,  98,  54,  95, 117),
+             c(155, 166, 203, 181, 246,  95,  64, 246, 148, 188, 141, 130, 200, 117, 130, 167,  89,  954,  72, 217, 106, 199, 142,  86, 178,  84, 153,  76, 108, 104),
+             c(137, 146, 173, 153, 214,  82,  58, 203, 127, 151, 122, 118, 184, 102, 109, 144,  77,  854,  67, 191,  92, 169, 128,  81, 156,  80, 125,  67, 101,  86),
+             c( 18,  20,  30,  28,  32,  13,   6,  43,  21,  37,  19,  12,  16,  15,  21,  23,  12,  100,   5,  26,  14,  30,  14,   5,  22,   4,  28,   9,   7,  18) )
+colnames(hiv) = c("Z", "Total", "Missing", "Observed", "Healthy", "Diseased")
+
+## Compute selection bias bounds.
+sel.bias.bounds(hiv, seed = 9553)
 
 ##################################################
 
-
-
-
-
+## Save the functions written here as an R workspace.
+save(expit, logit, ipw.glm, ttw.linear, partial.lik1, partial.lik2, full.lik, 
+     ttw.logistic, full.logit.lik, ttw.poisson, partial.poisson.lik1, 
+     partial.poisson.lik2, full.poisson.lik, sel.bias.bounds, file = "IVsel.RData")
 
 ##################################################
