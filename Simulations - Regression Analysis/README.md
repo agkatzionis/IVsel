@@ -24,8 +24,8 @@ The code used to run each simulation is included in the files "Reg_Sim##.R", whi
 
 Finally, after the manuscript had been submitted for publication, the folowing 10 simulation scenarios were added in response to reviewers' comments:
 
- - Five scenarios with an instrument-exposure association of varying strength, summairzed in file "ObsSimR1_1.R", with results reported in files "ObsSimR1_1_#_results.R".
- - Five scenarios with a (pleiotropic) instrument-outcome association of varying strength, summarized in file "ObsSimR1_2.R", with results reported in files "ObsSimR1_2_#_results.R".
+ - Five scenarios with an instrument-exposure association of varying strength, summairzed in file "ObsSimR1_1.R", with results reported in files "ObsSimR1_1_#_results.RData".
+ - Five scenarios with a (pleiotropic) instrument-outcome association of varying strength, summarized in file "ObsSimR1_2.R", with results reported in files "ObsSimR1_2_#_results.RData".
 
 The file "New_Summary.R" explores the simulation results from these 10 additional scenarios.
 
