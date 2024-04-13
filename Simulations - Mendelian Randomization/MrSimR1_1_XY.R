@@ -11,8 +11,9 @@
 ## Load the R functions we will use.
 load("IVsel_Functions.RData")
 
-## Load the R package that implements Heckman's method.
+## Load R packages.
 library(sampleSelection)
+library(survey)
 
 ## Generate array ID and file name.
 range <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
@@ -47,12 +48,14 @@ oracle.x <- matrix(0, iter, 4); colnames(oracle.x) <- c("Intercept", "se.int", "
 naive.x <- oracle.x; ipw1.x <- oracle.x; ipw2.x <- oracle.x; ipw3.x <- oracle.x
 heckman1.x <- oracle.x; heckman2.x <- oracle.x; heckman3.x <- oracle.x
 heckman4.x <- oracle.x; partial.x <- oracle.x; full.x <- oracle.x
+svyipw1.x <- oracle.x; svyipw2.x <- oracle.x; svyipw3.x <- oracle.x
 
 ## Store G-Y associations here.
 oracle.y <- matrix(0, iter, 4); colnames(oracle.y) <- c("Intercept", "se.int", "Beta", "se.beta")
 naive.y <- oracle.y; ipw1.y <- oracle.y; ipw2.y <- oracle.y; ipw3.y <- oracle.y
 heckman1.y <- oracle.y; heckman2.y <- oracle.y; heckman3.y <- oracle.y
 heckman4.y <- oracle.y; partial.y <- oracle.y; full.y <- oracle.y
+svyipw1.y <- oracle.y; svyipw2.y <- oracle.y; svyipw3.y <- oracle.y
 
 ## Store additional diagnostics here.
 diagnostics <- matrix(0, iter, 23)
@@ -157,6 +160,14 @@ for (I in 1:iter) {
   heckman3.y[I, ] <- c(heck3.y$estimate[4, 1:2], heck3.y$estimate[5, 1:2])
   heckman4.y[I, ] <- c(heck4.y$estimate[4, 1:2], heck4.y$estimate[5, 1:2])
   
+  ## Store IPW results with robust standard errors.
+  svyipw1.x[I, ] <- c(ipw.est1.x$svyest[1, 1], ipw.est1.x$svyest[1, 2], ipw.est1.x$svyest[2, 1], ipw.est1.x$svyest[2, 2])
+  svyipw2.x[I, ] <- c(ipw.est2.x$svyest[1, 1], ipw.est2.x$svyest[1, 2], ipw.est2.x$svyest[2, 1], ipw.est2.x$svyest[2, 2])
+  svyipw3.x[I, ] <- c(ipw.est3.x$svyest[1, 1], ipw.est3.x$svyest[1, 2], ipw.est3.x$svyest[2, 1], ipw.est3.x$svyest[2, 2])
+  svyipw1.y[I, ] <- c(ipw.est1.y$svyest[1, 1], ipw.est1.y$svyest[1, 2], ipw.est1.y$svyest[2, 1], ipw.est1.y$svyest[2, 2])
+  svyipw2.y[I, ] <- c(ipw.est2.y$svyest[1, 1], ipw.est2.y$svyest[1, 2], ipw.est2.y$svyest[2, 1], ipw.est2.y$svyest[2, 2])
+  svyipw3.y[I, ] <- c(ipw.est3.y$svyest[1, 1], ipw.est3.y$svyest[1, 2], ipw.est3.y$svyest[2, 1], ipw.est3.y$svyest[2, 2])
+  
   ## Store diagnostics.
   diagnostics[I, 1] <- glm(R ~ 1, family = binomial)$deviance - glm(R ~ Z, family = binomial)$deviance
   diagnostics[I, 2] <- glm(R ~ X, family = binomial)$deviance - glm(R ~ X + Z, family = binomial)$deviance
@@ -191,6 +202,7 @@ for (I in 1:iter) {
                           heckman1.x, heckman2.x, heckman3.x, heckman4.x, 
                           oracle.y, naive.y, partial.y, full.y, ipw1.y, ipw2.y, ipw3.y,
                           heckman1.y, heckman2.y, heckman3.y, heckman4.y, 
+                          svyipw1.x, svyipw2.x, svyipw3.x, svyipw1.y, svyipw2.y, svyipw3.y, 
                           file = filename)
   
 }
