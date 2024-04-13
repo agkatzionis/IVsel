@@ -14,7 +14,7 @@ Each of these categories contains six simulation scenarios, corresponding to eit
 
 We refer to our manuscript for more details.
 
-The code used to run each simulation is included in the files "MR_Sim##.R", while simulation results are reported in files "MR##_results.RData". The implementation of the IVsel methods for these simulations was made using the R functions contained in the files "IVsel_functions". The file "Summary.R" explores the simulation results from the various scenarios and describes how they were combined to form the Tables included in our manuscript and its supplement.
+The code used to run each simulation is included in the files "MR_Sim##.R", while simulation results are reported in files "MR##_results.RData". The implementation of the IVsel methods for these simulations was made using the R functions contained in the files "IVsel_functions". The file "Summary.R" explores the simulation results from the various scenarios and describes how they were combined to form the Tables and Figures included in our manuscript and its supplement.
 
 Finally, after the manuscript had been submitted for publication, some additional simulation scenarios were added in response to reviewers' comments. For brevity, these scenarios were only simulated under a one-cample MR setting with a single instrument for inference, in an MR analysis where both the exposure and the outcome affected selection into the study. The following scenarios were considered:
 
@@ -24,4 +24,4 @@ Finally, after the manuscript had been submitted for publication, some additiona
  - File "MrSimR1_4_XY.R" contains MR simulations with different values for the MR causal effect (6 scenarios). Files "MrSimR1_4_XY_#_results.RData" contain the results.
  - File "MrSimR1_5_XY.R" contains MR simulations with different sample sizes (6 scenarios). Files "MrSimR1_5_XY_#_results.RData" contain the results.
 
-The file "New_Summary.R" explores the simulation results from these 28 additional scenarios.
+The file "Summary.R" was updated to include simulation results from these 28 additional scenarios.
