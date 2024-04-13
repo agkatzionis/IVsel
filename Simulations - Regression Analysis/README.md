@@ -20,12 +20,12 @@ The results of the first 15 scenarios are reported in the main part of our paper
  - Scenarios S28-S29 explore the performance of IVsel methods when the outcome does not cause selection, but instead the two are confounded.
  - Scenarios S30-S35 consider violations of the normality assumption about the outcome.
 
-The code used to run each simulation is included in the files "Reg_Sim##.R", while simulation results are reported in files "Reg###_results.RData". The implementation of the IVsel methods for these simulations was made using the R functions contained in the files "IVsel_functions". The file "Summary.R" explores the simulation results from the various scenarios and describes how they were combined to form the Tables included in our manuscript and its supplement.
+The code used to run each simulation is included in the files "Reg_Sim##.R", while simulation results are reported in files "Reg###_results.RData". The implementation of the IVsel methods for these simulations was made using the R functions contained in the files "IVsel_functions". The file "Summary.R" explores the simulation results from the various scenarios and describes how they were combined to form the Tables and Figures included in our manuscript and its supplement.
 
 Finally, after the manuscript had been submitted for publication, the folowing 10 simulation scenarios were added in response to reviewers' comments:
 
  - Five scenarios with an instrument-exposure association of varying strength, summairzed in file "ObsSimR1_1.R", with results reported in files "ObsSimR1_1_#_results.RData".
  - Five scenarios with a (pleiotropic) instrument-outcome association of varying strength, summarized in file "ObsSimR1_2.R", with results reported in files "ObsSimR1_2_#_results.RData".
 
-The file "New_Summary.R" explores the simulation results from these 10 additional scenarios.
+The file "Summary.R" was updated to include results from these 10 additional scenarios.
 
