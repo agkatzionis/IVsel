@@ -6,8 +6,9 @@
 ## Load the R functions we will use.
 load("IVsel_Functions.RData")
 
-## Load the R package that implements Heckman's method.
+## Load R packages.
 library(sampleSelection)
+library(survey)
 
 ## Results will be saved here.
 filename <- "MR7_results.RData"
@@ -41,6 +42,7 @@ oracle <- matrix(0, iter, 4); colnames(oracle) <- c("Intercept", "se.int", "Beta
 naive <- oracle; ipw1 <- oracle; ipw2 <- oracle; ipw3 <- oracle
 heckman1 <- oracle; heckman2 <- oracle; heckman3 <- oracle
 heckman4 <- oracle; partial <- oracle; full <- oracle
+svyipw1 <- oracle; svyipw2 <- oracle; svyipw3 <- oracle
 
 ## Store additional diagnostics here.
 diagnostics <- matrix(0, iter, 23)
@@ -114,6 +116,11 @@ for (I in 1:iter) {
   heckman2[I, ] <- c(heck2$estimate[3, 1:2], heck2$estimate[4, 1:2])
   heckman3[I, ] <- c(heck3$estimate[4, 1:2], heck3$estimate[5, 1:2])
   heckman4[I, ] <- c(heck4$estimate[4, 1:2], heck4$estimate[5, 1:2])
+  
+  ## Store IPW results with robust standard errors.
+  svyipw1[I, ] <- c(ipw.est1$svyest[1, 1], ipw.est1$svyest[1, 2], ipw.est1$svyest[2, 1], ipw.est1$svyest[2, 2])
+  svyipw2[I, ] <- c(ipw.est2$svyest[1, 1], ipw.est2$svyest[1, 2], ipw.est2$svyest[2, 1], ipw.est2$svyest[2, 2])
+  svyipw3[I, ] <- c(ipw.est3$svyest[1, 1], ipw.est3$svyest[1, 2], ipw.est3$svyest[2, 1], ipw.est3$svyest[2, 2])
 
   ## Store diagnostics.
   diagnostics[I, 1] <- glm(R2 ~ 1, family = binomial)$deviance - glm(R2 ~ Z2, family = binomial)$deviance
@@ -147,6 +154,6 @@ for (I in 1:iter) {
   if (I %% 100 == 0) save(beta.x, gamma.x, beta.y, gamma.y, alpha.r, beta.r, gamma.r, delta.r, n1, n2, gx, oracle, naive,
                           partial, full, diagnostics, ipw1, ipw2, ipw3, 
                           heckman1, heckman2, heckman3, heckman4, 
-                          file = filename)
+                          svyipw1, svyipw2, svyipw3, file = filename)
   
 }

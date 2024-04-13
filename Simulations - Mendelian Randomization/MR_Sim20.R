@@ -6,8 +6,9 @@
 ## Load the R functions we will use.
 load("IVsel_Functions.RData")
 
-## Load the R package that implements Heckman's method.
+## Load R packages.
 library(sampleSelection)
+library(survey)
 library(ivreg)
 library(MendelianRandomization)
 library(truncnorm)
@@ -57,6 +58,9 @@ bx.partial1.all <- matrix(0, iter, K); sx.partial1.all <- matrix(0, iter, K)
 bx.partial2.all <- matrix(0, iter, K); sx.partial2.all <- matrix(0, iter, K)
 bx.partial3.all <- matrix(0, iter, K); sx.partial3.all <- matrix(0, iter, K)
 bx.full.all <- matrix(0, iter, K); sx.full.all <- matrix(0, iter, K)
+bx.svyipw1.all <- matrix(0, iter, K); sx.svyipw1.all <- matrix(0, iter, K)
+bx.svyipw2.all <- matrix(0, iter, K); sx.svyipw2.all <- matrix(0, iter, K)
+bx.svyipw3.all <- matrix(0, iter, K); sx.svyipw3.all <- matrix(0, iter, K)
 
 ## Store IVW MR estimates here.
 oracle.s <- matrix(0, iter, 2); colnames(oracle.s) <- c("Causal", "se.causal")
@@ -65,6 +69,7 @@ ipw3.s <- oracle.s ; full.s <- oracle.s; partial1.s <- oracle.s
 partial2.s <- oracle.s; partial3.s <- oracle.s; heckman1.s <- oracle.s
 heckman2.s <- oracle.s; heckman3.s <- oracle.s; heckman4.s <- oracle.s
 heckman5.s <- oracle.s; heckman6.s <- oracle.s
+svyipw1.s <- oracle.s; svyipw2.s <- oracle.s; svyipw3.s <- oracle.s
 
 ## Store additional diagnostics here.
 diagnostics <- matrix(0, iter, 19)
@@ -141,36 +146,48 @@ for (I in 1:iter) {
   
   ## IPW (G) summary statistics.
   bx.ipw1 <- rep(0, K); sx.ipw1 <- rep(0, K)
+  bx.svyipw1 <- rep(0, K); sx.svyipw1 <- rep(0, K)
   for (i in 1:K) {
     fit1 <- ipw.linear(X = G1[, i], Y = X1, R = R1, Z = G1[, which(!(1:K %in% i))])
     bx.ipw1[i] <- fit1$est[2, 1]
     sx.ipw1[i] <- fit1$est[2, 2]
+    bx.svyipw1[i] <- fit1$svyest[2, 1]
+    sx.svyipw1[i] <- fit1$svyest[2, 2]
   }
   
   ## Causal effect estimate.
   ipw.est1 <- mr_ivw(mr_input(bx = bx.ipw1, bxse = sx.ipw1, by = by, byse = sy))
+  svyipw.est1 <- mr_ivw(mr_input(bx = bx.svyipw1, bxse = sx.svyipw1, by = by, byse = sy))
   
   ## IPW (G, Z) summary statistics.
   bx.ipw2 <- rep(0, K); sx.ipw2 <- rep(0, K)
+  bx.svyipw2 <- rep(0, K); sx.svyipw2 <- rep(0, K)
   for (i in 1:K) {
     fit1 <- ipw.linear(X = G1[, i], Y = X1, R = R1, Z = cbind(Z1, G1[, which(!(1:K %in% i))]))
     bx.ipw2[i] <- fit1$est[2, 1]
     sx.ipw2[i] <- fit1$est[2, 2]
+    bx.svyipw2[i] <- fit1$svyest[2, 1]
+    sx.svyipw2[i] <- fit1$svyest[2, 2]
   }
   
   ## Causal effect estimate.
   ipw.est2 <- mr_ivw(mr_input(bx = bx.ipw2, bxse = sx.ipw2, by = by, byse = sy))
+  svyipw.est2 <- mr_ivw(mr_input(bx = bx.svyipw2, bxse = sx.svyipw2, by = by, byse = sy))
   
   ## IPW (Z) summary statistics.
   bx.ipw3 <- rep(0, K); sx.ipw3 <- rep(0, K)
+  bx.svyipw3 <- rep(0, K); sx.svyipw3 <- rep(0, K)
   for (i in 1:K) {
     fit1 <- ipw.linear(X = G1[, i], Y = X1, R = R1, Z = Z1, drop.x = TRUE)
     bx.ipw3[i] <- fit1$est[2, 1]
     sx.ipw3[i] <- fit1$est[2, 2]
+    bx.svyipw3[i] <- fit1$svyest[2, 1]
+    sx.svyipw3[i] <- fit1$svyest[2, 2]
   }
   
   ## Causal effect estimate.
   ipw.est3 <- mr_ivw(mr_input(bx = bx.ipw3, bxse = sx.ipw3, by = by, byse = sy))
+  svyipw.est3 <- mr_ivw(mr_input(bx = bx.svyipw3, bxse = sx.svyipw3, by = by, byse = sy))
   
   ## Heckman-2SLS (Z) summary statistics.
   bx.heck1 <- rep(0, K); sx.heck1 <- rep(0, K)
@@ -308,6 +325,9 @@ for (I in 1:iter) {
   bx.full.all[I, ] <- bx.full; sx.full.all[I, ] <- sx.full
   bx.partial2.all[I, ] <- bx.partial2; sx.partial2.all[I, ] <- sx.partial2
   bx.partial3.all[I, ] <- bx.partial3; sx.partial3.all[I, ] <- sx.partial3
+  bx.svyipw1.all[I, ] <- bx.svyipw1; sx.svyipw1.all[I, ] <- sx.svyipw1
+  bx.svyipw2.all[I, ] <- bx.svyipw2; sx.svyipw2.all[I, ] <- sx.svyipw2
+  bx.svyipw3.all[I, ] <- bx.svyipw3; sx.svyipw3.all[I, ] <- sx.svyipw3
   
   ## Store causal effect estimates.
   oracle.s[I, ] <- c(oracle.est$Estimate, oracle.est$StdError)
@@ -325,6 +345,9 @@ for (I in 1:iter) {
   full.s[I, ] <- c(full.est$Estimate, full.est$StdError)
   partial2.s[I, ] <- c(partial.est2$Estimate, partial.est2$StdError)
   partial3.s[I, ] <- c(partial.est3$Estimate, partial.est3$StdError)
+  svyipw1.s[I, ] <- c(svyipw.est1$Estimate, svyipw.est1$StdError)
+  svyipw2.s[I, ] <- c(svyipw.est2$Estimate, svyipw.est2$StdError)
+  svyipw3.s[I, ] <- c(svyipw.est3$Estimate, svyipw.est3$StdError)
   
   ## Store diagnostics.
   diagnostics[I, 1] <- glm(R1 ~ 1, family = binomial)$deviance - glm(R1 ~ Z1, family = binomial)$deviance
@@ -364,6 +387,7 @@ for (I in 1:iter) {
                           partial1.s, partial2.s, partial3.s, full.s,
                           bx.heckman5.all, bx.heckman6.all, sx.heckman5.all, 
                           sx.heckman6.all, heckman5.s, heckman6.s,
-                          file = filename)
+                          bx.svyipw1.all, sx.svyipw1.all, bx.svyipw2.all, sx.svyipw2.all, bx.svyipw3.all, 
+                          sx.svyipw3.all, svyipw1.s, svyipw2.s, svyipw3.s, file = filename)
   
 }

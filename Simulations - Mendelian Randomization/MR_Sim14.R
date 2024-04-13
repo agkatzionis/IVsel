@@ -6,8 +6,9 @@
 ## Load the R functions we will use.
 load("IVsel_Functions.RData")
 
-## Load the R package that implements Heckman's method.
+## Load R packages.
 library(sampleSelection)
+library(survey)
 library(ivreg)
 library(MendelianRandomization)
 library(truncnorm)
@@ -44,6 +45,7 @@ oracle.t <- matrix(0, iter, 4); colnames(oracle.t) <- c("Intercept", "se.int", "
 naive.t <- oracle.t; ipw1.t <- oracle.t; ipw2.t <- oracle.t; ipw3.t <- oracle.t
 ipw4.t <- oracle.t; ipw5.t <- oracle.t; partial.t <- oracle.t; full.t <- oracle.t
 heckman1.t <- oracle.t; heckman2.t <- oracle.t; heckman3.t <- oracle.t; heckman4.t <- oracle.t
+svyipw1.t <- oracle.t; svyipw2.t <- oracle.t; svyipw3.t <- oracle.t; svyipw4.t <- oracle.t; svyipw5.t <- oracle.t
 
 ## Store the bootstrap samples here.
 partial.t.boot <- matrix(0, iter, n.boot2); full.t.boot <- partial.t.boot
@@ -71,6 +73,11 @@ bx.partial1.all <- matrix(0, iter, K); sx.partial1.all <- matrix(0, iter, K)
 bx.partial2.all <- matrix(0, iter, K); sx.partial2.all <- matrix(0, iter, K)
 bx.partial3.all <- matrix(0, iter, K); sx.partial3.all <- matrix(0, iter, K)
 bx.full.all <- matrix(0, iter, K); sx.full.all <- matrix(0, iter, K)
+bx.svyipw1.all <- matrix(0, iter, K); sx.svyipw1.all <- matrix(0, iter, K)
+bx.svyipw2.all <- matrix(0, iter, K); sx.svyipw2.all <- matrix(0, iter, K)
+bx.svyipw3.all <- matrix(0, iter, K); sx.svyipw3.all <- matrix(0, iter, K)
+bx.svyipw4.all <- matrix(0, iter, K); sx.svyipw4.all <- matrix(0, iter, K)
+bx.svyipw5.all <- matrix(0, iter, K); sx.svyipw5.all <- matrix(0, iter, K)
 
 ## Store IVW MR estimates here.
 oracle.s <- matrix(0, iter, 2); colnames(oracle.s) <- c("Causal", "se.causal")
@@ -79,6 +86,7 @@ ipw4.s <- oracle.s; ipw5.s <- oracle.s; full.s <- oracle.s; partial1.s <- oracle
 partial2.s <- oracle.s; partial3.s <- oracle.s; heckman1.s <- oracle.s
 heckman2.s <- oracle.s; heckman3.s <- oracle.s; heckman4.s <- oracle.s
 heckman5.s <- oracle.s; heckman6.s <- oracle.s
+svyipw1.s <- oracle.s; svyipw2.s <- oracle.s; svyipw3.s <- oracle.s; svyipw4.s <- oracle.s; svyipw5.s <- oracle.s; 
 
 ## Store additional diagnostics here.
 diagnostics <- matrix(0, iter, 23)
@@ -190,6 +198,11 @@ for (I in 1:iter) {
   heckman2.t[I, ] <- c(heck.naive.est2$coefficients[1, 1:2], heck.naive.est2$coefficients[2, 1:2])
   heckman3.t[I, ] <- c(heck.naive.est3$coefficients[1, 1:2], heck.naive.est3$coefficients[2, 1:2])
   heckman4.t[I, ] <- c(heck.naive.est4$coefficients[1, 1:2], heck.naive.est4$coefficients[2, 1:2])
+  svyipw1.t[I, ] <- c(ipw.est1$svyest[1, 1], ipw.est1$svyest[1, 2], ipw.est1$svyest[2, 1], ipw.est1$svyest[2, 2])
+  svyipw2.t[I, ] <- c(ipw.est2$svyest[1, 1], ipw.est2$svyest[1, 2], ipw.est2$svyest[2, 1], ipw.est2$svyest[2, 2])
+  svyipw3.t[I, ] <- c(ipw.est3$svyest[1, 1], ipw.est3$svyest[1, 2], ipw.est3$svyest[2, 1], ipw.est3$svyest[2, 2])
+  svyipw4.t[I, ] <- c(ipw.est4$svyest[1, 1], ipw.est4$svyest[1, 2], ipw.est4$svyest[2, 1], ipw.est4$svyest[2, 2])
+  svyipw5.t[I, ] <- c(ipw.est5$svyest[1, 1], ipw.est5$svyest[1, 2], ipw.est5$svyest[2, 1], ipw.est5$svyest[2, 2])
   
   ## Store bootstrap samples.
   partial.t.boot[I, ] <- ivsel.boot.est1
@@ -241,58 +254,78 @@ for (I in 1:iter) {
   
   ## IPW (G) summary statistics.
   bx.ipw1 <- rep(0, K); sx.ipw1 <- rep(0, K)
+  bx.svyipw1 <- rep(0, K); sx.svyipw1 <- rep(0, K)
   for (i in 1:K) {
     fit1 <- ipw.linear(X = G[, i], Y = X, R = R, Z = G[, which(!(1:K %in% i))])
     bx.ipw1[i] <- fit1$est[2, 1]
     sx.ipw1[i] <- fit1$est[2, 2]
+    bx.svyipw1[i] <- fit1$svyest[2, 1]
+    sx.svyipw1[i] <- fit1$svyest[2, 2]
   }
   
   ## Causal effect estimate.
   ipw.est1 <- mr_ivw(mr_input(bx = bx.ipw1, bxse = sx.ipw1, by = by, byse = sy))
+  svyipw.est1 <- mr_ivw(mr_input(bx = bx.svyipw1, bxse = sx.svyipw1, by = by, byse = sy))
   
   ## IPW (G, Z) summary statistics.
   bx.ipw2 <- rep(0, K); sx.ipw2 <- rep(0, K)
+  bx.svyipw2 <- rep(0, K); sx.svyipw2 <- rep(0, K)
   for (i in 1:K) {
     fit1 <- ipw.linear(X = G[, i], Y = X, R = R, Z = cbind(Z, G[, which(!(1:K %in% i))]))
     bx.ipw2[i] <- fit1$est[2, 1]
     sx.ipw2[i] <- fit1$est[2, 2]
+    bx.svyipw2[i] <- fit1$svyest[2, 1]
+    sx.svyipw2[i] <- fit1$svyest[2, 2]
   }
   
   ## Causal effect estimate.
   ipw.est2 <- mr_ivw(mr_input(bx = bx.ipw2, bxse = sx.ipw2, by = by, byse = sy))
+  svyipw.est2 <- mr_ivw(mr_input(bx = bx.svyipw2, bxse = sx.svyipw2, by = by, byse = sy))
   
   ## IPW (Z) summary statistics.
   bx.ipw3 <- rep(0, K); sx.ipw3 <- rep(0, K)
+  bx.svyipw3 <- rep(0, K); sx.svyipw3 <- rep(0, K)
   for (i in 1:K) {
     fit1 <- ipw.linear(X = G[, i], Y = X, R = R, Z = Z, drop.x = TRUE)
     bx.ipw3[i] <- fit1$est[2, 1]
     sx.ipw3[i] <- fit1$est[2, 2]
+    bx.svyipw3[i] <- fit1$svyest[2, 1]
+    sx.svyipw3[i] <- fit1$svyest[2, 2]
   }
   
   ## Causal effect estimate.
   ipw.est3 <- mr_ivw(mr_input(bx = bx.ipw3, bxse = sx.ipw3, by = by, byse = sy))
+  svyipw.est3 <- mr_ivw(mr_input(bx = bx.svyipw3, bxse = sx.svyipw3, by = by, byse = sy))
   
   ## IPW (G, X) summary statistics.
   bx.ipw4 <- rep(0, K); sx.ipw4 <- rep(0, K)
+  bx.svyipw4 <- rep(0, K); sx.svyipw4 <- rep(0, K)
   for (i in 1:K) {
     fit1 <- ipw.linear(X = G[, i], Y = X, R = R, Z = cbind(Y, G[, which(!(1:K %in% i))]))
     bx.ipw4[i] <- fit1$est[2, 1]
     sx.ipw4[i] <- fit1$est[2, 2]
+    bx.svyipw4[i] <- fit1$svyest[2, 1]
+    sx.svyipw4[i] <- fit1$svyest[2, 2]
   }
   
   ## Causal effect estimate.
   ipw.est4 <- mr_ivw(mr_input(bx = bx.ipw4, bxse = sx.ipw4, by = by, byse = sy))
+  svyipw.est4 <- mr_ivw(mr_input(bx = bx.svyipw4, bxse = sx.svyipw4, by = by, byse = sy))
   
   ## IPW (G, X, Z) summary statistics.
   bx.ipw5 <- rep(0, K); sx.ipw5 <- rep(0, K)
+  bx.svyipw5 <- rep(0, K); sx.svyipw5 <- rep(0, K)
   for (i in 1:K) {
     fit1 <- ipw.linear(X = G[, i], Y = X, R = R, Z = cbind(Z, Y, G[, which(!(1:K %in% i))]))
     bx.ipw5[i] <- fit1$est[2, 1]
     sx.ipw5[i] <- fit1$est[2, 2]
+    bx.svyipw5[i] <- fit1$svyest[2, 1]
+    sx.svyipw5[i] <- fit1$svyest[2, 2]
   }
   
   ## Causal effect estimate.
   ipw.est5 <- mr_ivw(mr_input(bx = bx.ipw5, bxse = sx.ipw5, by = by, byse = sy))
+  svyipw.est5 <- mr_ivw(mr_input(bx = bx.svyipw5, bxse = sx.svyipw5, by = by, byse = sy))
   
   ## Heckman-2SLS (Z) summary statistics.
   bx.heck1 <- rep(0, K); sx.heck1 <- rep(0, K)
@@ -428,6 +461,11 @@ for (I in 1:iter) {
   bx.full.all[I, ] <- bx.full; sx.full.all[I, ] <- sx.full
   bx.partial2.all[I, ] <- bx.partial2; sx.partial2.all[I, ] <- sx.partial2
   bx.partial3.all[I, ] <- bx.partial3; sx.partial3.all[I, ] <- sx.partial3
+  bx.svyipw1.all[I, ] <- bx.svyipw1; sx.svyipw1.all[I, ] <- sx.svyipw1
+  bx.svyipw2.all[I, ] <- bx.svyipw2; sx.svyipw2.all[I, ] <- sx.svyipw2
+  bx.svyipw3.all[I, ] <- bx.svyipw3; sx.svyipw3.all[I, ] <- sx.svyipw3
+  bx.svyipw4.all[I, ] <- bx.svyipw4; sx.svyipw4.all[I, ] <- sx.svyipw4
+  bx.svyipw5.all[I, ] <- bx.svyipw5; sx.svyipw5.all[I, ] <- sx.svyipw5
   
   ## Store causal effect estimates.
   oracle.s[I, ] <- c(oracle.est$Estimate, oracle.est$StdError)
@@ -447,6 +485,11 @@ for (I in 1:iter) {
   full.s[I, ] <- c(full.est$Estimate, full.est$StdError)
   partial2.s[I, ] <- c(partial.est2$Estimate, partial.est2$StdError)
   partial3.s[I, ] <- c(partial.est3$Estimate, partial.est3$StdError)
+  svyipw1.s[I, ] <- c(svyipw.est1$Estimate, svyipw.est1$StdError)
+  svyipw2.s[I, ] <- c(svyipw.est2$Estimate, svyipw.est2$StdError)
+  svyipw3.s[I, ] <- c(svyipw.est3$Estimate, svyipw.est3$StdError)
+  svyipw4.s[I, ] <- c(svyipw.est4$Estimate, svyipw.est4$StdError)
+  svyipw5.s[I, ] <- c(svyipw.est5$Estimate, svyipw.est5$StdError)
   
   ## Store diagnostics.
   diagnostics[I, 1] <- glm(R ~ 1, family = binomial)$deviance - glm(R ~ Z, family = binomial)$deviance
@@ -489,6 +532,9 @@ for (I in 1:iter) {
                           partial1.s, partial2.s, partial3.s, full.s,
                           bx.heckman5.all, bx.heckman6.all, sx.heckman5.all, 
                           sx.heckman6.all, heckman5.s, heckman6.s,
-                          file = filename)
+                          svyipw1.t, svyipw2.t, svyipw3.t, svyipw4.t, svyipw5.t, bx.svyipw1.all, 
+                          sx.svyipw1.all, bx.svyipw2.all, sx.svyipw2.all, bx.svyipw3.all, sx.svyipw3.all, 
+                          bx.svyipw4.all, sx.svyipw4.all, bx.svyipw5.all, sx.svyipw5.all, 
+                          svyipw1.s, svyipw2.s, svyipw3.s, svyipw4.s, svyipw5.s, file = filename)
   
 }
