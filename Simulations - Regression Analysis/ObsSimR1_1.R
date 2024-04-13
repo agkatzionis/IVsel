@@ -7,8 +7,9 @@
 ## Load the R functions we will use.
 load("IVsel_Functions.RData")
 
-## Load the R package that implements Heckman's method.
+## Load R packages.
 library(sampleSelection)
+library(survey)
 
 ## Generate array ID and file name.
 range <- as.numeric(Sys.getenv('SLURM_ARRAY_TASK_ID'))
@@ -36,6 +37,7 @@ beta.x <- beta.x.values[range]   ## Z-X effect varied in this simulation.
 oracle <- matrix(0, iter, 4); colnames(oracle) <- c("Intercept", "se.int", "Beta", "se.beta")
 naive <- oracle; ipw1 <- oracle; ipw2 <- oracle; partial <- oracle; full <- oracle
 heckman1 <- oracle; heckman2 <- oracle; heckman3 <- oracle; heckman4 <- oracle; ipw3 <- oracle
+svyipw1 <- oracle; svyipw2 <- oracle; svyipw3 <- oracle; 
 
 ## Store additional diagnostics here.
 diagnostics <- matrix(0, iter, 17)
@@ -98,6 +100,11 @@ for (I in 1:iter) {
   heckman4[I, ] <- c(heck4$estimate[4, 1:2], heck4$estimate[5, 1:2])
   ipw3[I, ] <- c(ipw.est3$est[1, 1], ipw.est3$est[1, 2], ipw.est3$est[2, 1], ipw.est3$est[2, 2])
   
+  ## Store IPW results with robust standard errors.
+  svyipw1[I, ] <- c(ipw.est1$svyest[1, 1], ipw.est1$svyest[1, 2], ipw.est1$svyest[2, 1], ipw.est1$svyest[2, 2])
+  svyipw2[I, ] <- c(ipw.est2$svyest[1, 1], ipw.est2$svyest[1, 2], ipw.est2$svyest[2, 1], ipw.est2$svyest[2, 2])
+  svyipw3[I, ] <- c(ipw.est3$svyest[1, 1], ipw.est3$svyest[1, 2], ipw.est3$svyest[2, 1], ipw.est3$svyest[2, 2])
+  
   ## Store diagnostics.
   diagnostics[I, 1] <- glm(R ~ 1, family = binomial)$deviance - glm(R ~ Z, family = binomial)$deviance
   diagnostics[I, 2] <- glm(R ~ X, family = binomial)$deviance - glm(R ~ X + Z, family = binomial)$deviance
@@ -124,6 +131,6 @@ for (I in 1:iter) {
   if (I %% 100 == 0) save(alpha.y, beta.y, alpha.r, beta.r, gamma.r, delta.r, n, oracle, naive,
                           partial, full, diagnostics, 
                           ipw1, ipw2, ipw3, heckman1, heckman2, heckman3, heckman4, 
-                          file = filename)
+                          svyipw1, svyipw2, svyipw3, file = filename)
   
 }
