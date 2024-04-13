@@ -1,7 +1,7 @@
 
 #####################   IVSEL FUNCTIONS   #####################
 
-## This contains the R code for the R fuctions we 
+## This contains the R code for the R functions we 
 ## need to run the "Instruments for selection" methods.
 
 ## Auxiliary expit and logit functions.
@@ -14,6 +14,7 @@ expit2 <- function (x) {
 }
 
 ## Inverse probability weighting - linear case.
+## Now updated to use "survey" weights for IPW.
 ipw.linear <- function (X, Y, R, Z = NA, drop.x = FALSE) {
   
   ## Regress participation on covariates, compute scores.
@@ -32,10 +33,16 @@ ipw.linear <- function (X, Y, R, Z = NA, drop.x = FALSE) {
   ipw.weights <- R / ipw.scores + (1 - R) / (1 - ipw.scores)
   if (is.matrix(X)) {
     ipw.est <- summary(lm(  Y[R == 1] ~ X[R == 1, ], weights = ipw.weights[R == 1]  ))
+    ipw.data.frame <- data.frame(X, Y, R, ipw.weights)
+    sv.object1 <- svydesign(ids = ~1, weights = ~ipw.weights, data = ipw.data.frame)
+    ipw.svyest <- summary(svyglm(Y ~ X, design = sv.object1))
   } else {
     ipw.est <- summary(lm(  Y[R == 1] ~ X[R == 1], weights = ipw.weights[R == 1]  ))
+    ipw.data.frame <- data.frame(X, Y, R, ipw.weights)
+    sv.object1 <- svydesign(ids = ~1, weights = ~ipw.weights, data = ipw.data.frame)
+    ipw.svyest <- summary(svyglm(Y ~ X, design = sv.object1))
   }
-  return(list("est" = ipw.est$coefficients, "w.min" = min(ipw.weights), "w.max" = max(ipw.weights)))
+  return(list("est" = ipw.est$coefficients, "svyest" = ipw.svyest$coefficients, "w.min" = min(ipw.weights), "w.max" = max(ipw.weights)))
   
 }
 
@@ -57,11 +64,14 @@ ipw.logistic <- function (X, Y, R, Z = NA, drop.x = FALSE) {
   ## Get the IPW weights, do weighted regression.
   ipw.weights <- R / ipw.scores + (1 - R) / (1 - ipw.scores)
   ipw.est <- summary(glm(  Y[R == 1] ~ X[R == 1], family = binomial, weights = ipw.weights[R == 1]  ))
-  return(list("est" = ipw.est$coefficients, "w.min" = min(ipw.weights), "w.max" = max(ipw.weights)))
+  ipw.data.frame <- data.frame(X, Y, R, ipw.weights)
+  sv.object1 <- svydesign(ids = ~1, weights = ~ipw.weights, data = ipw.data.frame)
+  ipw.svyest <- summary(svyglm(Y ~ X, design = sv.object1, family = binomial))
+  return(list("est" = ipw.est$coefficients, "svyest" = ipw.svyest$coefficients, "w.min" = min(ipw.weights), "w.max" = max(ipw.weights)))
   
 }
 
-## Inverse probability weighting - logistic case.
+## Inverse probability weighting - Poisson case.
 ipw.poisson <- function (X, Y, R, Z = NA, drop.x = FALSE) {
   
   ## Regress participation on covariates, compute scores.
@@ -79,7 +89,10 @@ ipw.poisson <- function (X, Y, R, Z = NA, drop.x = FALSE) {
   ## Get the IPW weights, do weighted regression.
   ipw.weights <- R / ipw.scores + (1 - R) / (1 - ipw.scores)
   ipw.est <- summary(glm(  Y[R == 1] ~ X[R == 1], family = poisson, weights = ipw.weights[R == 1]  ))
-  return(list("est" = ipw.est$coefficients, "w.min" = min(ipw.weights), "w.max" = max(ipw.weights)))
+  ipw.data.frame <- data.frame(X, Y, R, ipw.weights)
+  sv.object1 <- svydesign(ids = ~1, weights = ~ipw.weights, data = ipw.data.frame)
+  ipw.svyest <- summary(svyglm(Y ~ X, design = sv.object1, family = poisson))
+  return(list("est" = ipw.est$coefficients, "svyest" = ipw.svyest$coefficients, "w.min" = min(ipw.weights), "w.max" = max(ipw.weights)))
   
 }
 
