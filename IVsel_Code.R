@@ -36,6 +36,7 @@
 
 ## We will also make use of the following R packages.
 require(MCMCpack)
+require(survey)
 
 ##################################################
 
@@ -136,11 +137,13 @@ ipw.glm <- function (X, Y, Z = NULL, x.in.w = TRUE, xy.family = gaussian, sel.fa
   ## Compute IPW weights.
   ipw.weights <- R / ipw.scores + (1 - R) / (1 - ipw.scores)
   
-  ## Perform weighted regression.
+  ## Perform weighted regression using the survey package.
+  ipw.data.frame <- data.frame(X, Y, R, ipw.weights)
+  sv.object1 <- svydesign(ids = ~1, weights = ~ipw.weights, data = ipw.data.frame)
   if (is.vector(X)) {
-    return(summary(glm(  Y[R == 1] ~ X[R == 1], weights = ipw.weights[R == 1], family = xy.family  )))
+    return(summary(svyglm(Y ~ X, design = sv.object1, family = xy.family)))
   } else {
-    return(summary(glm(  Y[R == 1] ~ X[R == 1, ], weights = ipw.weights[R == 1], family = xy.family  )))
+    return(summary(svyglm(formula(paste("Y~", paste0("X", 1:d, collapse = "+"), sep = "")), design = sv.object1, family = xy.family)))
   }
   
 }
